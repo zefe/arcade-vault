@@ -10,12 +10,8 @@ Arcade Vault: online platform to play games and compete for highest score. Curre
 
 Workflow is **Spec Driven Design** via `/spec` and `/spec-impl` skills from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (install: `npx skills@latest add Klerith/fernando-skills`). Write a spec before implementing features.
 
-## Commands
-
-- `npm run dev` — dev server (http://localhost:3000)
-- `npm run build` — production build (also type-checks)
-- `npm run lint` — ESLint (flat config, `eslint-config-next` core-web-vitals + typescript)
-- No test runner configured yet.
+## Skills
+Usa siempre /frontend-design para diseñar la interfaz de usuario. 
 
 ## Stack notes
 
