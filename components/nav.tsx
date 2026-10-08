@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useUser } from "@/lib/user-context";
 
-type Section = "biblioteca" | "salon" | "auth" | null;
+type Section = "inicio" | "biblioteca" | "salon" | "acerca" | "auth" | null;
 
 function sectionFor(pathname: string): Section {
-  if (pathname === "/" || pathname.startsWith("/juegos/")) return "biblioteca";
+  if (pathname === "/") return "inicio";
+  if (pathname === "/juegos" || pathname.startsWith("/juegos/")) return "biblioteca";
   if (pathname === "/salon") return "salon";
+  if (pathname === "/acerca") return "acerca";
   if (pathname === "/auth") return "auth";
   return null;
 }
@@ -32,8 +34,10 @@ export function Nav() {
           </div>
         </Link>
         <div className="links">
-          <Link href="/" className={cls("biblioteca")}>Biblioteca</Link>
+          <Link href="/" className={cls("inicio")}>Inicio</Link>
+          <Link href="/juegos" className={cls("biblioteca")}>Biblioteca</Link>
           <Link href="/salon" className={cls("salon")}>Salón de la Fama</Link>
+          <Link href="/acerca" className={cls("acerca")}>Acerca de</Link>
         </div>
         <div className="spacer"></div>
         <div className="coin-counter">
@@ -62,8 +66,10 @@ export function Nav() {
       <div className={"av-mobile-backdrop" + (open ? " open" : "")} onClick={close}></div>
       <aside className={"av-mobile-panel" + (open ? " open" : "")} inert={!open}>
         <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>MENÚ</div>
-        <Link href="/" className={cls("biblioteca")} onClick={close}>Biblioteca</Link>
+        <Link href="/" className={cls("inicio")} onClick={close}>Inicio</Link>
+        <Link href="/juegos" className={cls("biblioteca")} onClick={close}>Biblioteca</Link>
         <Link href="/salon" className={cls("salon")} onClick={close}>Salón de la Fama</Link>
+        <Link href="/acerca" className={cls("acerca")} onClick={close}>Acerca de</Link>
         <Link href="/auth" className={cls("auth")} onClick={close}>
           {user ? "Cuenta" : "Iniciar Sesión"}
         </Link>
