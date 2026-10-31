@@ -1,6 +1,6 @@
 # SPEC 03 — Integración base de Supabase
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-30
 > **Objetivo:** Conectar la app Next.js al proyecto Supabase `qkbdukluudjmeslfezke` con clientes tipados server/browser, variables de entorno y un endpoint `/api/health`, sin cambiar UI ni flujos existentes.
