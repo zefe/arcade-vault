@@ -11,7 +11,8 @@ Arcade Vault: online platform to play games and compete for highest score. Curre
 Workflow is **Spec Driven Design** via `/spec` and `/spec-impl` skills from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (install: `npx skills@latest add Klerith/fernando-skills`). Write a spec before implementing features.
 
 ## Skills
-Usa siempre /frontend-design para diseñar la interfaz de usuario. 
+
+Usa siempre /frontend-design para diseñar la interfaz de usuario.
 
 ## Stack notes
 
@@ -19,3 +20,4 @@ Usa siempre /frontend-design para diseñar la interfaz de usuario.
 - Typed route helpers are global (e.g. `LayoutProps<"/">` in `app/layout.tsx`), generated into `.next/types` by `next dev`/`next build`.
 - Tailwind CSS v4 via `@tailwindcss/postcss`: no `tailwind.config`; theme tokens defined in `app/globals.css` with `@theme inline` (CSS vars `--background`/`--foreground`, Geist fonts from `next/font`).
 - Import alias `@/*` → repo root.
+- Supabase (project `qkbdukluudjmeslfezke`): clients in `lib/supabase/` — `client.ts` (browser), `server.ts` (async, Server Components/Route Handlers/Server Actions), `env.ts` (`getSupabaseEnv()`). Env vars `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (template `.env.example`); never use secret/`service_role` keys in app code. Regenerate `lib/supabase/database.types.ts` with `npm run db:types` (needs `npx supabase login`). Migrations go in `supabase/migrations/`. Health check: `GET /api/health`.
