@@ -32,6 +32,12 @@ const CONTROLS = [
   { keys: ["P"], action: "Pausar" },
 ];
 
+// Sin esto, el botón conserva el foco y Espacio lo activaría en vez de disparar.
+const blurFocused = () => {
+  if (document.activeElement instanceof HTMLElement)
+    document.activeElement.blur();
+};
+
 export function RocasPlayer({ game }: { game: Game }) {
   const isTouch = useSyncExternalStore(
     subscribeToTouch,
@@ -54,8 +60,19 @@ export function RocasPlayer({ game }: { game: Game }) {
   }, []);
 
   const togglePause = () => {
+    blurFocused();
     if (snapshot.paused) engineRef.current?.resume();
     else engineRef.current?.pause();
+  };
+
+  const end = () => {
+    blurFocused();
+    engineRef.current?.end();
+  };
+
+  const restart = () => {
+    blurFocused();
+    engineRef.current?.restart();
   };
 
   return (
@@ -66,10 +83,12 @@ export function RocasPlayer({ game }: { game: Game }) {
       level={snapshot.level}
       paused={snapshot.paused}
       over={snapshot.phase === "gameover"}
+      controlsDisabled={snapshot.phase === "ready"}
       crtClassName="rocas-crt"
+      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
       onTogglePause={togglePause}
-      onEnd={() => engineRef.current?.end()}
-      onRestart={() => engineRef.current?.restart()}
+      onEnd={end}
+      onRestart={restart}
     >
       <canvas ref={canvasRef} aria-label={`Partida de ${game.title}`} />
       {snapshot.phase === "ready" && (

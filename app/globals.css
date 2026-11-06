@@ -471,6 +471,11 @@ a {
   }
 }
 
+.btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* ===== hero / library ===== */
 .av-hero {
   padding: 64px 32px 32px;
