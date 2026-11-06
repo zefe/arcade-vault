@@ -1,8 +1,10 @@
 import {
   ASTEROID_PARTICLES_PER_SIZE,
   ASTEROID_SPAWN_SAFE_DIST,
+  COLOR_POWERUP,
   INITIAL_ASTEROIDS,
   LEVEL_ASTEROIDS_BASE,
+  MAX_DPR,
   POINTS,
   POWERUP_DROP_CHANCE,
   POWERUP_DURATION,
@@ -29,7 +31,8 @@ export type RocasSnapshot = {
 };
 
 export class RocasEngine {
-  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private dpr: number;
   private onChange: (s: RocasSnapshot) => void;
 
   private keys: Record<string, boolean> = {};
@@ -51,7 +54,12 @@ export class RocasEngine {
   private killsSinceSpawn = 0;
 
   constructor(canvas: HTMLCanvasElement, onChange: (s: RocasSnapshot) => void) {
-    this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("RocasEngine: canvas 2D no disponible");
+    this.ctx = ctx;
+    this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    canvas.width = WORLD_WIDTH * this.dpr;
+    canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
     this.initGame("ready");
   }
@@ -227,5 +235,26 @@ export class RocasEngine {
 
     // Nivel completado
     if (this.asteroids.length === 0) this.nextLevel();
+  }
+
+  private draw() {
+    const ctx = this.ctx;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    this.particles.forEach((p) => p.draw(ctx));
+    this.asteroids.forEach((a) => a.draw(ctx));
+    this.powerUps.forEach((p) => p.draw(ctx));
+    this.bullets.forEach((b) => b.draw(ctx));
+    // En "ready" la invencibilidad no corre: sin esto, el parpadeo la dejaría oculta.
+    this.ship.draw(ctx, this.phase !== "ready");
+
+    if (this.ship.tripleShot > 0) {
+      ctx.fillStyle = COLOR_POWERUP;
+      ctx.font = "15px monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(`3x  ${this.ship.tripleShot.toFixed(1)}s`, 14, 46);
+    }
   }
 }

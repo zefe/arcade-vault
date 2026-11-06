@@ -262,10 +262,14 @@ export class Ship {
     return [new Bullet(ox, oy, this.angle)];
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, blink = true) {
     if (this.dead) return;
     // Parpadeo durante la invencibilidad
-    if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
+    if (
+      blink &&
+      this.invincible > 0 &&
+      Math.floor(this.invincible * 8) % 2 === 0
+    )
       return;
 
     ctx.save();
