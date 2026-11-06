@@ -65,6 +65,8 @@ export const COLOR_POWERUP = "#ff006e"; // --magenta
 export const COLOR_THRUST = "#d97a3a"; // --bronze
 export const COLOR_PARTICLE = "#f5ff00"; // --yellow, con alpha y sin glow
 
+export const GLOW_BLUR = 10; // solo nave, rocas y power-up
+
 export type Point = { x: number; y: number };
 
 export const wrap = (v: number, max: number) => ((v % max) + max) % max;
