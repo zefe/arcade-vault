@@ -31,6 +31,8 @@ export type RocasSnapshot = {
   level: number;
 };
 
+const GAME_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "Space"]);
+
 export class RocasEngine {
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
@@ -70,6 +72,8 @@ export class RocasEngine {
   }
 
   mount() {
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -109,12 +113,45 @@ export class RocasEngine {
 
   destroy() {
     cancelAnimationFrame(this.rafId);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keyup", this.handleKeyUp);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
     );
   }
+
+  // En "gameover" no se toca el teclado: el modal necesita espacios y flechas.
+  private capturesKeys() {
+    return this.phase !== "gameover";
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (!this.capturesKeys() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (GAME_KEYS.has(e.code)) e.preventDefault();
+
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (e.repeat || this.phase === "ready") return;
+      if (this.paused) this.resume();
+      else this.pause();
+      return;
+    }
+    if (this.paused) return;
+
+    if (e.code === "Space") {
+      if (e.repeat) return;
+      if (this.phase === "ready") this.start();
+      else if (this.phase === "playing") this.justPressed.Space = true;
+      return;
+    }
+    if (GAME_KEYS.has(e.code)) this.keys[e.code] = true;
+  };
+
+  private handleKeyUp = (e: KeyboardEvent) => {
+    if (this.capturesKeys() && GAME_KEYS.has(e.code)) e.preventDefault();
+    this.keys[e.code] = false;
+  };
 
   private handleBlur = () => this.pause();
 
@@ -158,6 +195,8 @@ export class RocasEngine {
     this.powerUps = [];
     this.powerUpSpawned = false;
     this.killsSinceSpawn = 0;
+    this.keys = {};
+    this.justPressed = {};
     this.score = 0;
     this.lives = STARTING_LIVES;
     this.level = 1;
