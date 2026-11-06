@@ -5,6 +5,7 @@ import {
   INITIAL_ASTEROIDS,
   LEVEL_ASTEROIDS_BASE,
   MAX_DPR,
+  MAX_DT,
   POINTS,
   POWERUP_DROP_CHANCE,
   POWERUP_DURATION,
@@ -53,6 +54,10 @@ export class RocasEngine {
   private powerUpSpawned = false;
   private killsSinceSpawn = 0;
 
+  private rafId = 0;
+  private lastTime: number | null = null;
+  private lastSnapshot: RocasSnapshot | null = null;
+
   constructor(canvas: HTMLCanvasElement, onChange: (s: RocasSnapshot) => void) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("RocasEngine: canvas 2D no disponible");
@@ -64,18 +69,85 @@ export class RocasEngine {
     this.initGame("ready");
   }
 
+  mount() {
+    window.addEventListener("blur", this.handleBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
   start() {
     if (this.phase !== "ready") return;
     this.phase = "playing";
+    this.emit();
+  }
+
+  pause() {
+    // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
+    this.keys = {};
+    this.justPressed = {};
+    if (this.phase !== "playing" && this.phase !== "dead") return;
+    this.paused = true;
+    this.emit();
+  }
+
+  resume() {
+    this.paused = false;
+    this.emit();
   }
 
   end() {
     this.phase = "gameover";
     this.paused = false;
+    this.emit();
   }
 
   restart() {
     this.initGame("playing");
+    this.emit();
+  }
+
+  destroy() {
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener("blur", this.handleBlur);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+  }
+
+  private handleBlur = () => this.pause();
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pause();
+  };
+
+  private loop = (ts: number) => {
+    const dt =
+      this.lastTime === null
+        ? 0
+        : Math.min((ts - this.lastTime) / 1000, MAX_DT);
+    this.lastTime = ts;
+    if (!this.paused) this.update(dt);
+    this.draw();
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  };
+
+  private emit() {
+    const { phase, paused, score, lives, level, lastSnapshot: last } = this;
+    if (
+      last &&
+      last.phase === phase &&
+      last.paused === paused &&
+      last.score === score &&
+      last.lives === lives &&
+      last.level === level
+    ) {
+      return;
+    }
+    this.lastSnapshot = { phase, paused, score, lives, level };
+    this.onChange(this.lastSnapshot);
   }
 
   private initGame(phase: RocasPhase) {
