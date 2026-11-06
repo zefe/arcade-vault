@@ -1142,6 +1142,19 @@ a {
   box-shadow: 0 0 6px var(--green);
 }
 
+/* Sin position propia: los pseudo-elementos CRT pintan encima del canvas. */
+.crt-screen canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 282px: nav, HUD, marco de la CRT y 8px de aire. Pantalla 4:3 + 48px de padding. */
+.rocas-crt {
+  width: min(100%, max(320px, calc((100dvh - 282px) * 4 / 3 + 48px)));
+  margin-inline: auto;
+}
+
 /* ROCAS: overlay inicial */
 /* El bloque va en la mitad inferior para no tapar la nave, que nace en el centro. */
 .rocas-ready {
