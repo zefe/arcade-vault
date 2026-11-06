@@ -10,7 +10,12 @@ import {
   COLOR_BULLET,
   COLOR_PARTICLE,
   COLOR_POWERUP,
+  COLOR_SHIP,
+  COLOR_THRUST,
+  DRAG_BASE,
+  DRAG_REFERENCE_FPS,
   GLOW_BLUR,
+  INVINCIBILITY_TIME,
   PARTICLE_MAX_LIFE,
   PARTICLE_MAX_SPEED,
   PARTICLE_MIN_LIFE,
@@ -21,7 +26,13 @@ import {
   POWERUP_RADIUS,
   POWERUP_TTL,
   RADII,
+  SHIP_NOSE_OFFSET,
+  SHIP_RADIUS,
+  SHIP_ROTATION_SPEED,
+  SHIP_THRUST,
+  SHOOT_COOLDOWN,
   SPEEDS,
+  TRIPLE_SPREAD,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   rand,
@@ -176,6 +187,114 @@ export class PowerUp {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("3x", this.x, this.y);
+    ctx.restore();
+  }
+}
+
+export type ShipInput = {
+  left: boolean;
+  right: boolean;
+  thrust: boolean;
+};
+
+export class Ship {
+  x = WORLD_WIDTH / 2;
+  y = WORLD_HEIGHT / 2;
+  angle = -Math.PI / 2;
+  vx = 0;
+  vy = 0;
+  radius = SHIP_RADIUS;
+  thrusting = false;
+  flameLength = 0; // decidida en update para que la llama se congele en pausa
+  invincible = INVINCIBILITY_TIME;
+  shootCooldown = 0;
+  tripleShot = 0; // no se reinicia en reset(), como en el original
+  dead = false;
+
+  reset() {
+    this.x = WORLD_WIDTH / 2;
+    this.y = WORLD_HEIGHT / 2;
+    this.angle = -Math.PI / 2;
+    this.vx = 0;
+    this.vy = 0;
+    this.thrusting = false;
+    this.flameLength = 0;
+    this.invincible = INVINCIBILITY_TIME;
+    this.shootCooldown = 0;
+    this.dead = false;
+  }
+
+  update(dt: number, input: ShipInput) {
+    if (this.dead) return;
+    if (this.invincible > 0) this.invincible -= dt;
+    if (this.shootCooldown > 0) this.shootCooldown -= dt;
+    if (this.tripleShot > 0) this.tripleShot -= dt;
+
+    if (input.left) this.angle -= SHIP_ROTATION_SPEED * dt;
+    if (input.right) this.angle += SHIP_ROTATION_SPEED * dt;
+
+    this.thrusting = input.thrust;
+    if (this.thrusting) {
+      this.vx += Math.cos(this.angle) * SHIP_THRUST * dt;
+      this.vy += Math.sin(this.angle) * SHIP_THRUST * dt;
+    }
+    this.flameLength = this.thrusting && Math.random() > 0.35 ? rand(6, 14) : 0;
+
+    const drag = Math.pow(DRAG_BASE, dt * DRAG_REFERENCE_FPS);
+    this.vx *= drag;
+    this.vy *= drag;
+    this.x = wrap(this.x + this.vx * dt, WORLD_WIDTH);
+    this.y = wrap(this.y + this.vy * dt, WORLD_HEIGHT);
+  }
+
+  tryShoot(): Bullet[] {
+    if (this.shootCooldown > 0 || this.dead) return [];
+    this.shootCooldown = SHOOT_COOLDOWN;
+    const ox = this.x + Math.cos(this.angle) * SHIP_NOSE_OFFSET;
+    const oy = this.y + Math.sin(this.angle) * SHIP_NOSE_OFFSET;
+    if (this.tripleShot > 0) {
+      return [
+        new Bullet(ox, oy, this.angle - TRIPLE_SPREAD),
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox, oy, this.angle + TRIPLE_SPREAD),
+      ];
+    }
+    return [new Bullet(ox, oy, this.angle)];
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    if (this.dead) return;
+    // Parpadeo durante la invencibilidad
+    if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
+      return;
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.strokeStyle = COLOR_SHIP;
+    ctx.shadowColor = COLOR_SHIP;
+    ctx.shadowBlur = GLOW_BLUR;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(20, 0); // nariz
+    ctx.lineTo(-12, -9); // ala izquierda
+    ctx.lineTo(-7, 0); // muesca trasera
+    ctx.lineTo(-12, 9); // ala derecha
+    ctx.closePath();
+    ctx.stroke();
+
+    if (this.flameLength > 0) {
+      ctx.strokeStyle = COLOR_THRUST;
+      ctx.shadowColor = COLOR_THRUST;
+      ctx.beginPath();
+      ctx.moveTo(-8, -4);
+      ctx.lineTo(-8 - this.flameLength, 0);
+      ctx.lineTo(-8, 4);
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 }
