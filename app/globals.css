@@ -1408,6 +1408,21 @@ a {
   margin-top: 18px;
   flex-wrap: wrap;
 }
+.modal-notice,
+.modal-error {
+  margin-top: 14px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+}
+.modal-notice {
+  color: var(--ink-dim);
+}
+.modal-error {
+  color: var(--magenta);
+  text-shadow: 0 0 8px rgba(255, 0, 110, 0.5);
+}
 .toast-saved {
   font-family: var(--pixel);
   font-size: 11px;
