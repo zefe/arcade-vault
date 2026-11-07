@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CatalogGame } from "@/lib/data";
-import { CATS } from "@/lib/games";
+import { CATS, type Game } from "@/lib/games";
 import { GameCard } from "./game-card";
 
 type Cat = (typeof CATS)[number];
 
-export function Library({ games }: { games: CatalogGame[] }) {
+export function Library({ games }: { games: Game[] }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Cat>("TODOS");
 

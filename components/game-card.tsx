@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
-import type { CatalogGame } from "@/lib/data";
+import type { Game } from "@/lib/games";
 
-const BTN_COLOR: Record<CatalogGame["color"], string> = {
+const BTN_COLOR: Record<Game["color"], string> = {
   cyan: "",
   green: "",
   magenta: "magenta",
   yellow: "yellow",
 };
 
-export function GameCard({ game }: { game: CatalogGame }) {
+export function GameCard({ game }: { game: Game }) {
   const router = useRouter();
   const tiltRef = useRef<HTMLDivElement>(null);
   const href = `/juegos/${game.id}`;

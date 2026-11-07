@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { CatalogGame } from "@/lib/data";
-import type { ScoreRow } from "@/lib/games";
+import type { Game, ScoreRow } from "@/lib/games";
 
 const TOP_CLASS = [" top1", " top2", " top3"];
 
-type Board = { game: CatalogGame; rows: ScoreRow[] };
+type Board = { game: Game; rows: ScoreRow[] };
 
 export function HallOfFame({ boards }: { boards: Board[] }) {
   const [tab, setTab] = useState(boards[0]?.game.id);

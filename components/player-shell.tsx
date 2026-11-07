@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import type { CatalogGame } from "@/lib/data";
+import type { Game } from "@/lib/games";
 import { normalizeName, submitScore } from "@/lib/scores";
 import { useUser } from "@/lib/user-context";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type PlayerShellProps = {
-  game: CatalogGame;
+  game: Game;
   score: number;
   lives: number;
   level: number;

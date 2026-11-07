@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { CatalogGame, RecentScore } from "@/lib/data";
-import type { GameColor, ScoreRow } from "@/lib/games";
+import type { Game, GameColor, RecentScore, ScoreRow } from "@/lib/games";
 import { useReveal } from "@/lib/use-reveal";
 
 type Feature = {
@@ -224,7 +223,7 @@ function FeatureIcon({ kind }: { kind: Feature["i"] }) {
   );
 }
 
-function MiniCard({ game }: { game: CatalogGame }) {
+function MiniCard({ game }: { game: Game }) {
   return (
     <Link href={`/juegos/${game.id}`} className="mini-card">
       <div className="mini-cover">
@@ -239,7 +238,7 @@ function MiniCard({ game }: { game: CatalogGame }) {
 }
 
 type HomeProps = {
-  games: CatalogGame[];
+  games: Game[];
   recentScores: RecentScore[];
   topPlayers: ScoreRow[];
 };
@@ -302,7 +301,7 @@ export function Home({ games, recentScores, topPlayers }: HomeProps) {
         </div>
       </section>
 
-      {/* GAMES PREVIEW */}
+      {/* VISTA PREVIA DE JUEGOS */}
       <section className="home-section reveal">
         <div className="section-head">
           <div className="kicker pixel neon-cyan">{"// 02"}</div>

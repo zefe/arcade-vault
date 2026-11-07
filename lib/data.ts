@@ -1,30 +1,12 @@
-import type { GameCategory, GameColor, ScoreRow } from "@/lib/games";
+import type {
+  Game,
+  GameCategory,
+  GameColor,
+  RecentScore,
+  ScoreRow,
+} from "@/lib/games";
 import type { Tables } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
-
-// Temporal hasta el paso 18: `Game` de lib/games.ts aún lleva `best` y `plays` estáticos.
-export type CatalogGame = {
-  id: string;
-  title: string;
-  short: string;
-  long: string;
-  cat: GameCategory;
-  cover: string;
-  color: GameColor;
-  controls: string | null;
-  ranked: boolean;
-  best: number | null;
-  marks: number;
-};
-
-// Temporal hasta el paso 18: pasa a lib/games.ts.
-export type RecentScore = {
-  name: string;
-  score: number;
-  gameTitle: string;
-  color: GameColor;
-  ago: string;
-};
 
 const CATEGORIES: readonly string[] = ["ARCADE", "PUZZLE", "SHOOTER", "VERSUS"];
 const COLORS: readonly string[] = ["cyan", "magenta", "yellow", "green"];
@@ -37,7 +19,7 @@ function isColor(value: string | null): value is GameColor {
   return value !== null && COLORS.includes(value);
 }
 
-function toGame(row: Tables<"games_with_stats">): CatalogGame {
+function toGame(row: Tables<"games_with_stats">): Game {
   const { id, title, short, long, cat, cover, color, ranked } = row;
   if (
     id === null ||
@@ -92,7 +74,7 @@ function toScoreRow(row: Tables<"leaderboard">, rank: number): ScoreRow {
   return { rank, name, score, date: formatDate(createdAt) };
 }
 
-export async function getGames(): Promise<CatalogGame[]> {
+export async function getGames(): Promise<Game[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("games_with_stats")
@@ -102,7 +84,7 @@ export async function getGames(): Promise<CatalogGame[]> {
   return data.map(toGame);
 }
 
-export async function getRankedGames(): Promise<CatalogGame[]> {
+export async function getRankedGames(): Promise<Game[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("games_with_stats")
@@ -114,7 +96,7 @@ export async function getRankedGames(): Promise<CatalogGame[]> {
   return data.map(toGame);
 }
 
-export async function getGame(id: string): Promise<CatalogGame | null> {
+export async function getGame(id: string): Promise<Game | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("games_with_stats")
