@@ -1,6 +1,6 @@
 # SPEC 05 — Leaderboard real y tabla de juegos
 
-> **Estado:** aprobado
+> **Estado:** implementado
 > **Depende de:** SPEC 01, SPEC 03, SPEC 04
 > **Fecha:** 2026-11-06
 > **Objetivo:** Mover el catálogo a una tabla `games` de Supabase y guardar y mostrar puntuaciones reales en una tabla `scores`, eliminando los datos inventados de rankings y estadísticas.
