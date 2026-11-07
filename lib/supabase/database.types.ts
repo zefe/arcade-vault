@@ -14,10 +14,128 @@ export type Database = {
   };
   public: {
     Tables: {
-      [_ in never]: never;
+      games: {
+        Row: {
+          cat: string;
+          color: string;
+          controls: string | null;
+          cover: string;
+          id: string;
+          long: string;
+          ranked: boolean;
+          short: string;
+          sort_order: number;
+          title: string;
+        };
+        Insert: {
+          cat: string;
+          color: string;
+          controls?: string | null;
+          cover: string;
+          id: string;
+          long: string;
+          ranked?: boolean;
+          short: string;
+          sort_order: number;
+          title: string;
+        };
+        Update: {
+          cat?: string;
+          color?: string;
+          controls?: string | null;
+          cover?: string;
+          id?: string;
+          long?: string;
+          ranked?: boolean;
+          short?: string;
+          sort_order?: number;
+          title?: string;
+        };
+        Relationships: [];
+      };
+      scores: {
+        Row: {
+          created_at: string;
+          game_id: string;
+          id: number;
+          name: string;
+          score: number;
+        };
+        Insert: {
+          created_at?: string;
+          game_id: string;
+          id?: never;
+          name: string;
+          score: number;
+        };
+        Update: {
+          created_at?: string;
+          game_id?: string;
+          id?: never;
+          name?: string;
+          score?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scores_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scores_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games_with_stats";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
-      [_ in never]: never;
+      games_with_stats: {
+        Row: {
+          best: number | null;
+          cat: string | null;
+          color: string | null;
+          controls: string | null;
+          cover: string | null;
+          id: string | null;
+          long: string | null;
+          marks: number | null;
+          ranked: boolean | null;
+          short: string | null;
+          sort_order: number | null;
+          title: string | null;
+        };
+        Relationships: [];
+      };
+      leaderboard: {
+        Row: {
+          created_at: string | null;
+          game_id: string | null;
+          name: string | null;
+          rank: number | null;
+          score: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scores_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scores_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games_with_stats";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       [_ in never]: never;
