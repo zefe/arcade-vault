@@ -963,6 +963,26 @@ a {
   border-bottom: 1px solid var(--line);
   letter-spacing: 0.14em;
 }
+/* Ranking sin filas: en la ficha, el Salón y la Home. */
+.lb-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--ink-dim);
+}
+.lb-empty p {
+  margin: 12px 0 20px;
+}
+.lb-empty p:last-child {
+  margin-bottom: 0;
+}
+.lb-empty-title {
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+}
+.lb-empty-title.muted {
+  color: var(--ink-dim);
+}
 .lb-row {
   display: grid;
   grid-template-columns: 36px 1fr 110px;
