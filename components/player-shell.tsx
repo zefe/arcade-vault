@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import type { Game } from "@/lib/games";
+import type { CatalogGame } from "@/lib/data";
 import { useUser } from "@/lib/user-context";
 
 type PlayerShellProps = {
-  game: Game;
+  game: CatalogGame;
   score: number;
   lives: number;
   level: number;

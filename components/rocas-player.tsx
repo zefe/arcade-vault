@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { PlayerShell } from "@/components/player-shell";
-import type { Game } from "@/lib/games";
+import type { CatalogGame } from "@/lib/data";
 import { STARTING_LIVES } from "@/lib/games/rocas/constants";
 import { RocasEngine, type RocasSnapshot } from "@/lib/games/rocas/engine";
 
@@ -38,7 +38,7 @@ const blurFocused = () => {
     document.activeElement.blur();
 };
 
-export function RocasPlayer({ game }: { game: Game }) {
+export function RocasPlayer({ game }: { game: CatalogGame }) {
   const isTouch = useSyncExternalStore(
     subscribeToTouch,
     getIsTouch,

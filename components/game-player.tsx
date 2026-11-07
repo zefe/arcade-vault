@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
-import type { Game } from "@/lib/games";
+import type { CatalogGame } from "@/lib/data";
 
 type Run = { score: number; level: number };
 const FRESH_RUN: Run = { score: 0, level: 1 };
 
-export function GamePlayer({ game }: { game: Game }) {
+export function GamePlayer({ game }: { game: CatalogGame }) {
   const [run, setRun] = useState<Run>(FRESH_RUN);
   const [lives, setLives] = useState(3);
   const [paused, setPaused] = useState(false);
