@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
-import type { Game } from "@/lib/games";
+import type { CatalogGame } from "@/lib/data";
 
-const BTN_COLOR: Record<Game["color"], string> = { cyan: "", green: "", magenta: "magenta", yellow: "yellow" };
+const BTN_COLOR: Record<CatalogGame["color"], string> = {
+  cyan: "",
+  green: "",
+  magenta: "magenta",
+  yellow: "yellow",
+};
 
-export function GameCard({ game }: { game: Game }) {
+export function GameCard({ game }: { game: CatalogGame }) {
   const router = useRouter();
   const tiltRef = useRef<HTMLDivElement>(null);
   const href = `/juegos/${game.id}`;
@@ -27,7 +32,13 @@ export function GameCard({ game }: { game: Game }) {
   };
 
   return (
-    <div ref={tiltRef} className="card" onMouseMove={onMove} onMouseLeave={onLeave} onClick={() => router.push(href)}>
+    <div
+      ref={tiltRef}
+      className="card"
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      onClick={() => router.push(href)}
+    >
       <div className="cover">
         <div className={"cover-bg " + game.cover}></div>
         <div className="label">{game.cat}</div>
@@ -38,9 +49,13 @@ export function GameCard({ game }: { game: Game }) {
         <div className="row">
           <div className="score-badge">
             <span>MEJOR PUNTUACIÓN</span>
-            <b>{game.best.toLocaleString("es-ES")}</b>
+            <b>{game.best?.toLocaleString("es-ES") ?? "—"}</b>
           </div>
-          <Link href={href} className={"btn " + BTN_COLOR[game.color]} onClick={(e) => e.stopPropagation()}>
+          <Link
+            href={href}
+            className={"btn " + BTN_COLOR[game.color]}
+            onClick={(e) => e.stopPropagation()}
+          >
             JUGAR
           </Link>
         </div>
