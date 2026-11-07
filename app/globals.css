@@ -2933,3 +2933,67 @@ a {
     transform: rotate(360deg);
   }
 }
+
+/* estados de conexión: error.tsx y loading.tsx */
+.signal-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: min(100%, 560px);
+  margin-inline: auto;
+  padding: 48px 16px 80px;
+  text-align: center;
+}
+.signal-page .crt {
+  width: 100%;
+}
+.signal-title {
+  margin: 0;
+  padding: 0 16px;
+  font-family: var(--pixel);
+  font-size: clamp(14px, 4vw, 24px);
+  font-weight: 400;
+  line-height: 1.5;
+}
+.signal-text {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--ink-dim);
+}
+/* Banda de interferencia que recorre el monitor sin señal. */
+.signal-static {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0 42%,
+    rgba(255, 0, 110, 0.14) 50%,
+    transparent 58% 100%
+  );
+  background-size: 100% 200%;
+  animation: signalRoll 4s linear infinite;
+}
+@keyframes signalRoll {
+  from {
+    background-position: 0 100%;
+  }
+  to {
+    background-position: 0 -100%;
+  }
+}
+.signal-loading {
+  padding: 120px 16px;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-align: center;
+}
+.signal-cursor {
+  animation: blink 1.2s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-static,
+  .signal-cursor {
+    animation: none;
+  }
+}
