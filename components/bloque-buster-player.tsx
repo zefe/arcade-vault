@@ -89,6 +89,7 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       paused={snapshot.paused}
       over={snapshot.phase === "gameover"}
       controlsDisabled={snapshot.phase === "ready"}
+      crtClassName="bloque-buster-crt"
       pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
       onTogglePause={togglePause}
       onEnd={end}

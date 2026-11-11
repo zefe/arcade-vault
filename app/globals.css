@@ -1359,6 +1359,103 @@ a {
   }
 }
 
+/* BLOQUE BUSTER: mundo 800×600 (4:3), misma fórmula que ROCAS */
+.bloque-buster-crt {
+  width: min(100%, max(320px, calc((100dvh - 282px) * 4 / 3 + 48px)));
+  margin-inline: auto;
+}
+
+/* BLOQUE BUSTER: overlay inicial */
+/* Franja entre el muro (y 80–224 de 600) y la paleta (y 560): ambos quedan a la vista. */
+.bloque-buster-ready {
+  inset: 40% 0 10%;
+  background: rgba(0, 0, 0, 0.72);
+  border-block: 1px solid rgba(0, 245, 255, 0.45);
+  box-shadow: inset 0 0 24px rgba(0, 245, 255, 0.18);
+  z-index: 5;
+  padding: 0 12px;
+}
+.bloque-buster-controls {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+.bloque-buster-controls > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.bloque-buster-controls dt {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.bloque-buster-controls dd {
+  margin: 0;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+}
+.bloque-buster-controls kbd {
+  min-width: 34px;
+  padding: 8px 10px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--cyan);
+  background: rgba(0, 245, 255, 0.06);
+  border: 1px solid var(--cyan);
+  border-bottom-width: 3px;
+  box-shadow: 0 0 8px rgba(0, 245, 255, 0.35);
+}
+.bloque-buster-start {
+  font-size: 16px;
+  animation: blink 1.2s steps(1, end) infinite;
+}
+.bloque-buster-touch {
+  margin-top: 16px;
+  font-size: 10px;
+}
+/* En pantallas estrechas la franja no cabe: el overlay ocupa toda la CRT. */
+@media (max-width: 760px) {
+  .bloque-buster-ready {
+    inset: 0;
+    border-block: 0;
+    box-shadow: none;
+  }
+}
+@media (max-width: 560px) {
+  .bloque-buster-controls {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .bloque-buster-controls dd {
+    font-size: 11px;
+  }
+  .bloque-buster-controls kbd {
+    min-width: 24px;
+    padding: 3px 6px;
+    font-size: 8px;
+    border-bottom-width: 2px;
+  }
+  .bloque-buster-start {
+    font-size: 11px;
+  }
+  .bloque-buster-touch {
+    margin-top: 6px;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bloque-buster-start {
+    animation: none;
+  }
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute;
