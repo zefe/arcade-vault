@@ -32,6 +32,12 @@ const CONTROLS = [
   { keys: ["P"], action: "Pausar" },
 ];
 
+// Sin esto, el botón conserva el foco y Espacio lo activaría en vez de soltar la pieza.
+const blurFocused = () => {
+  if (document.activeElement instanceof HTMLElement)
+    document.activeElement.blur();
+};
+
 export function CaidaPlayer({ game }: { game: Game }) {
   const isTouch = useSyncExternalStore(
     subscribeToTouch,
@@ -55,13 +61,20 @@ export function CaidaPlayer({ game }: { game: Game }) {
   }, []);
 
   const togglePause = () => {
+    blurFocused();
     if (snapshot.paused) engineRef.current?.resume();
     else engineRef.current?.pause();
   };
 
-  const end = () => engineRef.current?.end();
+  const end = () => {
+    blurFocused();
+    engineRef.current?.end();
+  };
 
-  const restart = () => engineRef.current?.restart();
+  const restart = () => {
+    blurFocused();
+    engineRef.current?.restart();
+  };
 
   return (
     <PlayerShell
@@ -71,7 +84,9 @@ export function CaidaPlayer({ game }: { game: Game }) {
       level={snapshot.level}
       paused={snapshot.paused}
       over={snapshot.phase === "gameover"}
+      controlsDisabled={snapshot.phase === "ready"}
       crtClassName="caida-crt"
+      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
