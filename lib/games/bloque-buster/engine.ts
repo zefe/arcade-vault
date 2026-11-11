@@ -44,7 +44,17 @@ export type BloqueBusterSnapshot = {
   level: number; // 1–5
 };
 
+const GAME_KEYS = new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "Space",
+  "KeyP",
+  "Escape",
+]);
+const PADDLE_KEYS = new Set(["ArrowLeft", "ArrowRight"]);
+
 export class BloqueBusterEngine {
+  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: BloqueBusterSnapshot) => void;
@@ -78,6 +88,7 @@ export class BloqueBusterEngine {
     canvas: HTMLCanvasElement,
     onChange: (s: BloqueBusterSnapshot) => void,
   ) {
+    this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("BloqueBusterEngine: canvas 2D no disponible");
     this.ctx = ctx;
@@ -90,6 +101,9 @@ export class BloqueBusterEngine {
   }
 
   mount() {
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
+    this.canvas.addEventListener("mousemove", this.handleMouseMove);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -128,12 +142,56 @@ export class BloqueBusterEngine {
 
   destroy() {
     cancelAnimationFrame(this.rafId);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keyup", this.handleKeyUp);
+    this.canvas.removeEventListener("mousemove", this.handleMouseMove);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
     );
   }
+
+  // En "gameover" no se toca el teclado: el modal necesita espacios y flechas.
+  private capturesKeys() {
+    return this.phase !== "gameover";
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (!this.capturesKeys() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!GAME_KEYS.has(e.code)) return;
+    e.preventDefault();
+
+    if (this.phase === "ready") {
+      if (e.code === "Space" && !e.repeat) this.start();
+      return;
+    }
+
+    // "playing"
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (e.repeat) return;
+      if (this.paused) this.resume();
+      else this.pause();
+      return;
+    }
+    if (this.paused || !PADDLE_KEYS.has(e.code)) return;
+    // El autorepeat solo cuenta si la tecla se pulsó tras la última limpieza de keys.
+    if (e.repeat && !this.keys[e.code]) return;
+    this.keys[e.code] = true;
+  };
+
+  private handleKeyUp = (e: KeyboardEvent) => {
+    if (this.capturesKeys() && GAME_KEYS.has(e.code)) e.preventDefault();
+    this.keys[e.code] = false;
+  };
+
+  // Coordenada del cursor convertida al mundo lógico, sea cual sea el tamaño de la CRT.
+  private handleMouseMove = (e: MouseEvent) => {
+    const rect = this.canvas.getBoundingClientRect();
+    if (rect.width === 0) return;
+    const mouseX = ((e.clientX - rect.left) * WORLD_WIDTH) / rect.width;
+    this.movePaddleTo(mouseX);
+  };
 
   private handleBlur = () => this.pause();
 
