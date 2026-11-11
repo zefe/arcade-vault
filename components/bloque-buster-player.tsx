@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import { START_LIVES } from "@/lib/games/bloque-buster/constants";
@@ -17,7 +17,30 @@ const INITIAL_SNAPSHOT: BloqueBusterSnapshot = {
   level: 1,
 };
 
+const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
+
+function subscribeToTouch(onChange: () => void) {
+  const query = window.matchMedia(TOUCH_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
+const getIsTouchOnServer = () => false;
+
+const CONTROLS = [
+  { keys: ["←", "→"], action: "Mover la paleta" },
+  { keys: ["Ratón"], action: "Mover la paleta" },
+  { keys: ["P", "Esc"], action: "Pausar" },
+];
+
 export function BloqueBusterPlayer({ game }: { game: Game }) {
+  // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
+  const isTouch = useSyncExternalStore(
+    subscribeToTouch,
+    getIsTouch,
+    getIsTouchOnServer,
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<BloqueBusterEngine | null>(null);
   const [snapshot, setSnapshot] =
@@ -57,6 +80,32 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       onRestart={restart}
     >
       <canvas ref={canvasRef} aria-label={`Partida de ${game.title}`} />
+      {snapshot.phase === "ready" && (
+        <div className="crt-content bloque-buster-ready">
+          <div>
+            <dl className="bloque-buster-controls">
+              {CONTROLS.map(({ keys, action }) => (
+                <div key={keys.join("")}>
+                  <dt>
+                    {keys.map((key) => (
+                      <kbd key={key}>{key}</kbd>
+                    ))}
+                  </dt>
+                  <dd>{action}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="pixel neon-yellow bloque-buster-start">
+              PULSA ESPACIO
+            </div>
+            {isTouch && (
+              <div className="pixel neon-magenta bloque-buster-touch">
+                REQUIERE TECLADO O RATÓN
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </PlayerShell>
   );
 }
