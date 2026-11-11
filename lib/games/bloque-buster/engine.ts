@@ -9,6 +9,7 @@ import {
   BLOCKS_ORIGIN_Y,
   EXPLOSION_DURATION,
   MAX_DPR,
+  MAX_DT,
   PADDLE_BOUNCE_TOLERANCE,
   PADDLE_H,
   PADDLE_MAX_X,
@@ -69,6 +70,10 @@ export class BloqueBusterEngine {
   // Teclas mantenidas: movimiento continuo de la paleta.
   private keys: Record<string, boolean> = {};
 
+  private rafId = 0;
+  private lastTime: number | null = null;
+  private lastSnapshot: BloqueBusterSnapshot | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: BloqueBusterSnapshot) => void,
@@ -84,9 +89,29 @@ export class BloqueBusterEngine {
     this.initGame("ready");
   }
 
+  mount() {
+    window.addEventListener("blur", this.handleBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
   start() {
     if (this.phase !== "ready") return;
     this.phase = "playing";
+    this.emit();
+  }
+
+  pause() {
+    // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
+    this.keys = {};
+    if (this.phase !== "playing") return;
+    this.paused = true;
+    this.emit();
+  }
+
+  resume() {
+    this.paused = false;
     this.emit();
   }
 
@@ -101,9 +126,49 @@ export class BloqueBusterEngine {
     this.emit();
   }
 
+  destroy() {
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener("blur", this.handleBlur);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+  }
+
+  private handleBlur = () => this.pause();
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pause();
+  };
+
+  // En pausa se dibuja sin actualizar: la pelota no avanza.
+  private loop = (ts: number) => {
+    const dt =
+      this.lastTime === null
+        ? 0
+        : Math.min((ts - this.lastTime) / 1000, MAX_DT);
+    this.lastTime = ts;
+    if (!this.paused) this.update(dt);
+    this.draw();
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  };
+
+  // Solo se emite si cambia el snapshot: evita un render de React por frame.
   private emit() {
-    const { phase, paused, score, lives, level } = this;
-    this.onChange({ phase, paused, score, lives, level });
+    const { phase, paused, score, lives, level, lastSnapshot: last } = this;
+    if (
+      last &&
+      last.phase === phase &&
+      last.paused === paused &&
+      last.score === score &&
+      last.lives === lives &&
+      last.level === level
+    ) {
+      return;
+    }
+    this.lastSnapshot = { phase, paused, score, lives, level };
+    this.onChange(this.lastSnapshot);
   }
 
   // En "ready" ya se ven los bloques del nivel 1, la paleta centrada y la pelota encima.
