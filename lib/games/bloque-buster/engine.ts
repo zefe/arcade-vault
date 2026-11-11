@@ -8,6 +8,7 @@ import {
   BLOCKS_ORIGIN_X,
   BLOCKS_ORIGIN_Y,
   EXPLOSION_DURATION,
+  MAX_DPR,
   PADDLE_BOUNCE_TOLERANCE,
   PADDLE_H,
   PADDLE_MAX_X,
@@ -25,6 +26,10 @@ import {
   type Explosion,
   type Paddle,
   collideAABB,
+  drawBall,
+  drawBlock,
+  drawExplosion,
+  drawPaddle,
 } from "./entities";
 import { LEVELS } from "./levels";
 
@@ -39,7 +44,8 @@ export type BloqueBusterSnapshot = {
 };
 
 export class BloqueBusterEngine {
-  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private dpr: number;
   private onChange: (s: BloqueBusterSnapshot) => void;
 
   private paddle: Paddle = { x: 0, y: PADDLE_Y, w: PADDLE_W, h: PADDLE_H };
@@ -67,7 +73,13 @@ export class BloqueBusterEngine {
     canvas: HTMLCanvasElement,
     onChange: (s: BloqueBusterSnapshot) => void,
   ) {
-    this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("BloqueBusterEngine: canvas 2D no disponible");
+    this.ctx = ctx;
+    // Backing store 800·dpr × 600·dpr; se dibuja en coordenadas del mundo lógico.
+    this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    canvas.width = WORLD_WIDTH * this.dpr;
+    canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
     this.initGame("ready");
   }
@@ -208,5 +220,17 @@ export class BloqueBusterEngine {
         this.resetBall();
       }
     }
+  }
+
+  // Solo el mundo: score, vidas, nivel, pausa y game over los pinta React.
+  private draw() {
+    const ctx = this.ctx;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    for (const block of this.blocks) if (block.alive) drawBlock(ctx, block);
+    for (const exp of this.explosions) drawExplosion(ctx, exp);
+    drawPaddle(ctx, this.paddle);
+    drawBall(ctx, this.ball);
   }
 }

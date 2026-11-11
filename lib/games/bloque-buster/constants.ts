@@ -37,7 +37,6 @@ export const EXPLOSION_STEPS = 4;
 export const EXPLOSION_GROW = 2; // px por lado en cada paso
 
 // Colores: mismos valores que los tokens de globals.css, más 3 derivados
-export const COLOR_BG = "#0a0a0f"; // --bg
 export const COLOR_PADDLE = "#00f5ff"; // --cyan
 export const COLOR_BALL = "#e6e9ff"; // --ink
 export const BLOCK_COLORS: Record<BlockColor, string> = {
