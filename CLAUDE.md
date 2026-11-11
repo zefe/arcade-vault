@@ -10,6 +10,8 @@ Arcade Vault: online platform to play games and compete for highest score. Curre
 
 Workflow is **Spec Driven Design** via `/spec` and `/spec-impl` skills from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (install: `npx skills@latest add Klerith/fernando-skills`). Write a spec before implementing features.
 
+New real games (with leaderboard): run `/nuevo-juego <reference folder | catalog id | description>` (`.claude/skills/nuevo-juego/`) to generate the game spec from the SPEC 04/05 pattern, then `/spec-impl`.
+
 ## Skills
 
 Usa siempre /frontend-design para diseñar la interfaz de usuario.
