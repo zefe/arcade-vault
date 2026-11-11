@@ -1,20 +1,16 @@
 import { notFound } from "next/navigation";
 import { GamePlayer } from "@/components/game-player";
-import { RocasPlayer } from "@/components/rocas-player";
-import { GAMES, getGame } from "@/lib/games";
-
-export function generateStaticParams() {
-  return GAMES.map((g) => ({ id: g.id }));
-}
+import { GAME_PLAYERS } from "@/components/game-players";
+import { getGame } from "@/lib/data";
 
 export default async function GamePlayerPage({
   params,
 }: PageProps<"/juegos/[id]/jugar">) {
   const { id } = await params;
-  const game = getGame(id);
+  const game = await getGame(id);
   if (!game) notFound();
 
-  if (game.id === "rocas") return <RocasPlayer game={game} />;
+  const Player = GAME_PLAYERS[game.id] ?? GamePlayer;
 
-  return <GamePlayer game={game} />;
+  return <Player game={game} />;
 }

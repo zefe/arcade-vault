@@ -1,18 +1,22 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type User = { name: string };
-export type SavedScore = { game: string; score: number; name: string; at: number };
 
 const USER_KEY = "av_user";
-const SCORES_KEY = "av_scores";
 
 type UserContextValue = {
   user: User | null;
   login: (u: User) => void;
   logout: () => void;
-  saveScore: (entry: Omit<SavedScore, "at">) => void;
 };
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -44,15 +48,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  const saveScore = useCallback((entry: Omit<SavedScore, "at">) => {
-    try {
-      const all = JSON.parse(localStorage.getItem(SCORES_KEY) || "[]") as SavedScore[];
-      all.push({ ...entry, at: Date.now() });
-      localStorage.setItem(SCORES_KEY, JSON.stringify(all));
-    } catch {}
-  }, []);
-
-  const value = useMemo(() => ({ user, login, logout, saveScore }), [user, login, logout, saveScore]);
+  const value = useMemo(() => ({ user, login, logout }), [user, login, logout]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

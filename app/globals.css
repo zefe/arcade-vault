@@ -963,6 +963,26 @@ a {
   border-bottom: 1px solid var(--line);
   letter-spacing: 0.14em;
 }
+/* Ranking sin filas: en la ficha, el Salón y la Home. */
+.lb-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--ink-dim);
+}
+.lb-empty p {
+  margin: 12px 0 20px;
+}
+.lb-empty p:last-child {
+  margin-bottom: 0;
+}
+.lb-empty-title {
+  font-size: 12px;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+}
+.lb-empty-title.muted {
+  color: var(--ink-dim);
+}
 .lb-row {
   display: grid;
   grid-template-columns: 36px 1fr 110px;
@@ -1242,6 +1262,103 @@ a {
   }
 }
 
+/* CAÍDA: mundo 800×600 (4:3), misma fórmula que ROCAS */
+.caida-crt {
+  width: min(100%, max(320px, calc((100dvh - 282px) * 4 / 3 + 48px)));
+  margin-inline: auto;
+}
+
+/* CAÍDA: overlay inicial */
+/* Cubre solo la columna del tablero (x 250–550 de 800): la caja SIGUIENTE queda a la vista. */
+.caida-ready {
+  inset: 0 31.25%;
+  background: rgba(0, 0, 0, 0.72);
+  border-inline: 1px solid rgba(255, 0, 110, 0.45);
+  box-shadow: inset 0 0 24px rgba(255, 0, 110, 0.18);
+  z-index: 5;
+  padding: 0 12px;
+}
+.caida-controls {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 28px;
+}
+.caida-controls > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.caida-controls dt {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.caida-controls dd {
+  margin: 0;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+}
+.caida-controls kbd {
+  min-width: 34px;
+  padding: 8px 10px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--magenta);
+  background: rgba(255, 0, 110, 0.08);
+  border: 1px solid var(--magenta);
+  border-bottom-width: 3px;
+  box-shadow: 0 0 8px rgba(255, 0, 110, 0.35);
+}
+.caida-start {
+  font-size: 14px;
+  animation: blink 1.2s steps(1, end) infinite;
+}
+.caida-touch {
+  margin-top: 16px;
+  font-size: 10px;
+}
+/* En pantallas estrechas la columna no cabe: el overlay ocupa toda la CRT. */
+@media (max-width: 760px) {
+  .caida-ready {
+    inset: 0;
+    border-inline: 0;
+    box-shadow: none;
+  }
+}
+@media (max-width: 560px) {
+  .caida-controls {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .caida-controls dd {
+    font-size: 11px;
+  }
+  .caida-controls kbd {
+    min-width: 24px;
+    padding: 3px 6px;
+    font-size: 8px;
+    border-bottom-width: 2px;
+  }
+  .caida-start {
+    font-size: 11px;
+  }
+  .caida-touch {
+    margin-top: 6px;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caida-start {
+    animation: none;
+  }
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute;
@@ -1387,6 +1504,21 @@ a {
   justify-content: center;
   margin-top: 18px;
   flex-wrap: wrap;
+}
+.modal-notice,
+.modal-error {
+  margin-top: 14px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+}
+.modal-notice {
+  color: var(--ink-dim);
+}
+.modal-error {
+  color: var(--magenta);
+  text-shadow: 0 0 8px rgba(255, 0, 110, 0.5);
 }
 .toast-saved {
   font-family: var(--pixel);
@@ -2931,5 +3063,69 @@ a {
 @keyframes spinpix {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* estados de conexión: error.tsx y loading.tsx */
+.signal-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: min(100%, 560px);
+  margin-inline: auto;
+  padding: 48px 16px 80px;
+  text-align: center;
+}
+.signal-page .crt {
+  width: 100%;
+}
+.signal-title {
+  margin: 0;
+  padding: 0 16px;
+  font-family: var(--pixel);
+  font-size: clamp(14px, 4vw, 24px);
+  font-weight: 400;
+  line-height: 1.5;
+}
+.signal-text {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--ink-dim);
+}
+/* Banda de interferencia que recorre el monitor sin señal. */
+.signal-static {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0 42%,
+    rgba(255, 0, 110, 0.14) 50%,
+    transparent 58% 100%
+  );
+  background-size: 100% 200%;
+  animation: signalRoll 4s linear infinite;
+}
+@keyframes signalRoll {
+  from {
+    background-position: 0 100%;
+  }
+  to {
+    background-position: 0 -100%;
+  }
+}
+.signal-loading {
+  padding: 120px 16px;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-align: center;
+}
+.signal-cursor {
+  animation: blink 1.2s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-static,
+  .signal-cursor {
+    animation: none;
   }
 }

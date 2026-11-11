@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import type { Game } from "@/lib/games";
+import { normalizeName, submitScore } from "@/lib/scores";
 import { useUser } from "@/lib/user-context";
+
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type PlayerShellProps = {
   game: Game;
   score: number;
-  lives: number;
+  lives?: number; // si es undefined, no se pinta Vidas
+  lines?: number; // si está definido, se pinta Líneas entre Puntuación y Nivel
   level: number;
   paused: boolean;
   over: boolean;
@@ -25,6 +29,7 @@ export function PlayerShell({
   game,
   score,
   lives,
+  lines,
   level,
   paused,
   over,
@@ -36,20 +41,22 @@ export function PlayerShell({
   onRestart,
   children,
 }: PlayerShellProps) {
-  const { user, saveScore } = useUser();
+  const { user } = useUser();
   // null = not edited yet; falls back to the logged-in user (hydrated after mount) or INVITADO.
   const [nameInput, setNameInput] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const name = nameInput ?? user?.name ?? "INVITADO";
+  const saving = saveStatus === "saving";
 
   const restart = () => {
-    setSaved(false);
+    setSaveStatus("idle");
     onRestart();
   };
 
-  const onSave = () => {
-    saveScore({ game: game.id, score, name });
-    setSaved(true);
+  const onSave = async () => {
+    setSaveStatus("saving");
+    const result = await submitScore({ gameId: game.id, name, score });
+    setSaveStatus(result.ok ? "saved" : "error");
   };
 
   return (
@@ -66,10 +73,18 @@ export function PlayerShell({
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString("es-ES")}</div>
           </div>
-          <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
-          </div>
+          {lives !== undefined && (
+            <div className="hud-stat lives">
+              <div className="l">Vidas</div>
+              <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            </div>
+          )}
+          {lines !== undefined && (
+            <div className="hud-stat">
+              <div className="l">Líneas</div>
+              <div className="v">{lines.toLocaleString("es-ES")}</div>
+            </div>
+          )}
           <div className="hud-stat level">
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
@@ -141,25 +156,41 @@ export function PlayerShell({
             <h2 id="game-over-title">FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString("es-ES")}</div>
-            {!saved ? (
-              <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setNameInput(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                  aria-label="Tus iniciales"
-                />
-                <button className="btn yellow" onClick={onSave}>
-                  GUARDAR PUNTUACIÓN
-                </button>
-              </div>
-            ) : (
+            {!game.ranked ? (
+              <div className="modal-notice">SIMULACIÓN: NO PUNTÚA</div>
+            ) : score === 0 ? (
+              <div className="modal-notice">SIN PUNTOS: NO SE GUARDA</div>
+            ) : saveStatus === "saved" ? (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
+            ) : (
+              <>
+                <div className="input-row">
+                  <input
+                    value={name}
+                    onChange={(e) =>
+                      setNameInput(e.target.value.toUpperCase().slice(0, 10))
+                    }
+                    placeholder="TUS INICIALES"
+                    aria-label="Tus iniciales"
+                    disabled={saving}
+                  />
+                  <button
+                    className="btn yellow"
+                    onClick={onSave}
+                    disabled={saving || normalizeName(name) === ""}
+                  >
+                    {saving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
+                  </button>
+                </div>
+                {saveStatus === "error" && (
+                  <div className="modal-error" role="alert">
+                    ERROR AL GUARDAR. INTÉNTALO DE NUEVO
+                  </div>
+                )}
+              </>
             )}
             <div className="actions">
-              <button className="btn" onClick={restart}>
+              <button className="btn" onClick={restart} disabled={saving}>
                 JUGAR DE NUEVO
               </button>
               <Link href="/juegos" className="btn magenta">
