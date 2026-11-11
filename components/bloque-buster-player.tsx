@@ -34,6 +34,12 @@ const CONTROLS = [
   { keys: ["P", "Esc"], action: "Pausar" },
 ];
 
+// Sin esto, el botón conserva el foco y Espacio lo activaría de nuevo.
+const blurFocused = () => {
+  if (document.activeElement instanceof HTMLElement)
+    document.activeElement.blur();
+};
+
 export function BloqueBusterPlayer({ game }: { game: Game }) {
   // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
   const isTouch = useSyncExternalStore(
@@ -59,13 +65,20 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
   }, []);
 
   const togglePause = () => {
+    blurFocused();
     if (snapshot.paused) engineRef.current?.resume();
     else engineRef.current?.pause();
   };
 
-  const end = () => engineRef.current?.end();
+  const end = () => {
+    blurFocused();
+    engineRef.current?.end();
+  };
 
-  const restart = () => engineRef.current?.restart();
+  const restart = () => {
+    blurFocused();
+    engineRef.current?.restart();
+  };
 
   return (
     <PlayerShell
@@ -75,6 +88,8 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       level={snapshot.level}
       paused={snapshot.paused}
       over={snapshot.phase === "gameover"}
+      controlsDisabled={snapshot.phase === "ready"}
+      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
