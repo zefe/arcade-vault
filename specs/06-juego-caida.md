@@ -1,6 +1,6 @@
 # SPEC 06 — Juego CAÍDA real en el reproductor
 
-> **Estado:** Aprobado
+> **Estado:** implementado
 > **Depende de:** SPEC 04, SPEC 05
 > **Fecha:** 2026-11-10
 > **Objetivo:** Adaptar `references/started-games/03-tetris/` como motor TypeScript en canvas para que `/juegos/caida/jugar` sea un juego real con ranking, sobre `PlayerShell`.
