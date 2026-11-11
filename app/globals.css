@@ -1262,6 +1262,103 @@ a {
   }
 }
 
+/* CAÍDA: mundo 800×600 (4:3), misma fórmula que ROCAS */
+.caida-crt {
+  width: min(100%, max(320px, calc((100dvh - 282px) * 4 / 3 + 48px)));
+  margin-inline: auto;
+}
+
+/* CAÍDA: overlay inicial */
+/* Cubre solo la columna del tablero (x 250–550 de 800): la caja SIGUIENTE queda a la vista. */
+.caida-ready {
+  inset: 0 31.25%;
+  background: rgba(0, 0, 0, 0.72);
+  border-inline: 1px solid rgba(255, 0, 110, 0.45);
+  box-shadow: inset 0 0 24px rgba(255, 0, 110, 0.18);
+  z-index: 5;
+  padding: 0 12px;
+}
+.caida-controls {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 28px;
+}
+.caida-controls > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.caida-controls dt {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.caida-controls dd {
+  margin: 0;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+}
+.caida-controls kbd {
+  min-width: 34px;
+  padding: 8px 10px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--magenta);
+  background: rgba(255, 0, 110, 0.08);
+  border: 1px solid var(--magenta);
+  border-bottom-width: 3px;
+  box-shadow: 0 0 8px rgba(255, 0, 110, 0.35);
+}
+.caida-start {
+  font-size: 14px;
+  animation: blink 1.2s steps(1, end) infinite;
+}
+.caida-touch {
+  margin-top: 16px;
+  font-size: 10px;
+}
+/* En pantallas estrechas la columna no cabe: el overlay ocupa toda la CRT. */
+@media (max-width: 760px) {
+  .caida-ready {
+    inset: 0;
+    border-inline: 0;
+    box-shadow: none;
+  }
+}
+@media (max-width: 560px) {
+  .caida-controls {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .caida-controls dd {
+    font-size: 11px;
+  }
+  .caida-controls kbd {
+    min-width: 24px;
+    padding: 3px 6px;
+    font-size: 8px;
+    border-bottom-width: 2px;
+  }
+  .caida-start {
+    font-size: 11px;
+  }
+  .caida-touch {
+    margin-top: 6px;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .caida-start {
+    animation: none;
+  }
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute;
