@@ -11,7 +11,8 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 type PlayerShellProps = {
   game: Game;
   score: number;
-  lives: number;
+  lives?: number; // si es undefined, no se pinta Vidas
+  lines?: number; // si está definido, se pinta Líneas entre Puntuación y Nivel
   level: number;
   paused: boolean;
   over: boolean;
@@ -28,6 +29,7 @@ export function PlayerShell({
   game,
   score,
   lives,
+  lines,
   level,
   paused,
   over,
@@ -71,10 +73,18 @@ export function PlayerShell({
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString("es-ES")}</div>
           </div>
-          <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
-          </div>
+          {lives !== undefined && (
+            <div className="hud-stat lives">
+              <div className="l">Vidas</div>
+              <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            </div>
+          )}
+          {lines !== undefined && (
+            <div className="hud-stat">
+              <div className="l">Líneas</div>
+              <div className="v">{lines.toLocaleString("es-ES")}</div>
+            </div>
+          )}
           <div className="hud-stat level">
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
