@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { BloqueBusterPlayer } from "@/components/bloque-buster-player";
 import { CaidaPlayer } from "@/components/caida-player";
 import { RocasPlayer } from "@/components/rocas-player";
 import type { Game } from "@/lib/games";
@@ -7,4 +8,5 @@ import type { Game } from "@/lib/games";
 export const GAME_PLAYERS: Record<string, ComponentType<{ game: Game }>> = {
   rocas: RocasPlayer,
   caida: CaidaPlayer,
+  "bloque-buster": BloqueBusterPlayer,
 };
