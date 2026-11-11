@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { GamePlayer } from "@/components/game-player";
-import { RocasPlayer } from "@/components/rocas-player";
+import { GAME_PLAYERS } from "@/components/game-players";
 import { getGame } from "@/lib/data";
 
 export default async function GamePlayerPage({
@@ -10,7 +10,7 @@ export default async function GamePlayerPage({
   const game = await getGame(id);
   if (!game) notFound();
 
-  if (game.id === "rocas") return <RocasPlayer game={game} />;
+  const Player = GAME_PLAYERS[game.id] ?? GamePlayer;
 
-  return <GamePlayer game={game} />;
+  return <Player game={game} />;
 }
