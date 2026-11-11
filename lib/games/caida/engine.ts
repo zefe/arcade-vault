@@ -47,6 +47,17 @@ export type CaidaSnapshot = {
   level: number;
 };
 
+const GAME_KEYS = new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowDown",
+  "ArrowUp",
+  "KeyX",
+  "Space",
+]);
+// Movimiento continuo con el autorepeat del sistema operativo, como game.js.
+const REPEATABLE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowDown"]);
+
 export class CaidaEngine {
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
@@ -84,6 +95,8 @@ export class CaidaEngine {
   }
 
   mount() {
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keyup", this.handleKeyUp);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -123,11 +136,73 @@ export class CaidaEngine {
 
   destroy() {
     cancelAnimationFrame(this.rafId);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keyup", this.handleKeyUp);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
     );
+  }
+
+  // En "gameover" no se toca el teclado: el modal necesita espacios, flechas y la X.
+  private capturesKeys() {
+    return this.phase !== "gameover";
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (!this.capturesKeys() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (GAME_KEYS.has(e.code)) e.preventDefault();
+
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (e.repeat || this.phase === "ready") return;
+      if (this.paused) this.resume();
+      else this.pause();
+      return;
+    }
+    if (this.paused || !GAME_KEYS.has(e.code)) return;
+
+    if (this.phase === "ready") {
+      if (e.code === "Space" && !e.repeat) this.start();
+      return;
+    }
+
+    if (REPEATABLE_KEYS.has(e.code)) {
+      // El autorepeat solo cuenta si la tecla se pulsó tras la última limpieza de keys.
+      if (e.repeat && !this.keys[e.code]) return;
+    } else if (e.repeat) {
+      return; // rotar y caída instantánea: una acción por pulsación
+    }
+    this.keys[e.code] = true;
+    this.justPressed[e.code] = true;
+  };
+
+  private handleKeyUp = (e: KeyboardEvent) => {
+    if (this.capturesKeys() && GAME_KEYS.has(e.code)) e.preventDefault();
+    this.keys[e.code] = false;
+  };
+
+  private pressed(code: string) {
+    const val = this.justPressed[code];
+    this.justPressed[code] = false;
+    return !!val;
+  }
+
+  // Cada acción se salta si una anterior del mismo frame terminó la partida.
+  private handleInput() {
+    // Se consumen las dos antes de combinarlas: con `||`, KeyX quedaría pendiente.
+    const up = this.pressed("ArrowUp");
+    const x = this.pressed("KeyX");
+    const actions: [boolean, () => void][] = [
+      [this.pressed("ArrowLeft"), () => this.move(-1)],
+      [this.pressed("ArrowRight"), () => this.move(1)],
+      [this.pressed("ArrowDown"), () => this.softDrop()],
+      [up || x, () => this.rotate()],
+      [this.pressed("Space"), () => this.hardDrop()],
+    ];
+    for (const [pressed, act] of actions) {
+      if (pressed && this.phase === "playing") act();
+    }
   }
 
   private handleBlur = () => this.pause();
@@ -262,6 +337,8 @@ export class CaidaEngine {
   // Gravedad por tiempo: al superar el intervalo, el acumulador vuelve a 0 (no se resta).
   private update(dt: number) {
     if (this.phase !== "playing") return;
+    this.handleInput();
+    if (this.phase !== "playing") return; // una bajada pudo terminar la partida
     this.dropAccum += dt;
     if (this.dropAccum >= this.dropInterval) {
       this.dropAccum = 0;
