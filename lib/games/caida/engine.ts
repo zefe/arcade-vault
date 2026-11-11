@@ -21,6 +21,7 @@ import {
   ROWS,
   SOFT_DROP_POINTS,
   WALL_KICKS,
+  MAX_DT,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   dropIntervalFor,
@@ -63,6 +64,12 @@ export class CaidaEngine {
   private dropInterval = dropIntervalFor(1); // segundos
   private dropAccum = 0; // segundos
 
+  // keys: teclas mantenidas; justPressed: acciones pendientes para el próximo update.
+  private keys: Record<string, boolean> = {};
+  private justPressed: Record<string, boolean> = {};
+
+  private rafId = 0;
+  private lastTime: number | null = null;
   private lastSnapshot: CaidaSnapshot | null = null;
 
   constructor(canvas: HTMLCanvasElement, onChange: (s: CaidaSnapshot) => void) {
@@ -76,9 +83,30 @@ export class CaidaEngine {
     this.initGame("ready");
   }
 
+  mount() {
+    window.addEventListener("blur", this.handleBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
   start() {
     if (this.phase !== "ready") return;
     this.phase = "playing";
+    this.emit();
+  }
+
+  pause() {
+    // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
+    this.keys = {};
+    this.justPressed = {};
+    if (this.phase !== "playing") return;
+    this.paused = true;
+    this.emit();
+  }
+
+  resume() {
+    this.paused = false;
     this.emit();
   }
 
@@ -92,6 +120,34 @@ export class CaidaEngine {
     this.initGame("playing");
     this.emit();
   }
+
+  destroy() {
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener("blur", this.handleBlur);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+  }
+
+  private handleBlur = () => this.pause();
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pause();
+  };
+
+  // En pausa se dibuja sin actualizar: la gravedad no avanza.
+  private loop = (ts: number) => {
+    const dt =
+      this.lastTime === null
+        ? 0
+        : Math.min((ts - this.lastTime) / 1000, MAX_DT);
+    this.lastTime = ts;
+    if (!this.paused) this.update(dt);
+    this.draw();
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  };
 
   private emit() {
     const { phase, paused, score, lines, level, lastSnapshot: last } = this;
@@ -117,6 +173,8 @@ export class CaidaEngine {
     this.level = 1;
     this.dropInterval = dropIntervalFor(1);
     this.dropAccum = 0;
+    this.keys = {};
+    this.justPressed = {};
     this.paused = false;
     this.phase = phase;
     this.next = randomPiece();
