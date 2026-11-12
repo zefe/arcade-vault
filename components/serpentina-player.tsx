@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import {
@@ -15,7 +15,30 @@ const INITIAL_SNAPSHOT: SerpentinaSnapshot = {
   level: 1,
 };
 
+const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
+
+function subscribeToTouch(onChange: () => void) {
+  const query = window.matchMedia(TOUCH_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
+const getIsTouchOnServer = () => false;
+
+const CONTROLS = [
+  { keys: ["↑", "↓", "←", "→"], action: "Girar" },
+  { keys: ["W", "A", "S", "D"], action: "Girar" },
+  { keys: ["P", "Esc"], action: "Pausar" },
+];
+
 export function SerpentinaPlayer({ game }: { game: Game }) {
+  // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
+  const isTouch = useSyncExternalStore(
+    subscribeToTouch,
+    getIsTouch,
+    getIsTouchOnServer,
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<SerpentinaEngine | null>(null);
   const [snapshot, setSnapshot] =
@@ -56,6 +79,32 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
       onRestart={restart}
     >
       <canvas ref={canvasRef} aria-label={`Partida de ${game.title}`} />
+      {snapshot.phase === "ready" && (
+        <div className="crt-content serpentina-ready">
+          <div>
+            <dl className="serpentina-controls">
+              {CONTROLS.map(({ keys, action }) => (
+                <div key={keys.join("")}>
+                  <dt>
+                    {keys.map((key) => (
+                      <kbd key={key}>{key}</kbd>
+                    ))}
+                  </dt>
+                  <dd>{action}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="pixel neon-yellow serpentina-start">
+              PULSA ESPACIO
+            </div>
+            {isTouch && (
+              <div className="pixel neon-magenta serpentina-touch">
+                REQUIERE TECLADO
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </PlayerShell>
   );
 }
