@@ -3,6 +3,7 @@ import {
   FRUIT_POINTS,
   FRUITS_PER_LEVEL,
   MAX_DPR,
+  MAX_DT,
   MAX_LEVEL,
   MAX_QUEUED_TURNS,
   ROWS,
@@ -53,6 +54,10 @@ export class SerpentinaEngine {
   private score = 0;
   private level = 1;
 
+  private rafId = 0;
+  private lastTime: number | null = null;
+  private lastSnapshot: SerpentinaSnapshot | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: SerpentinaSnapshot) => void,
@@ -69,9 +74,29 @@ export class SerpentinaEngine {
     this.initGame("ready");
   }
 
+  mount() {
+    window.addEventListener("blur", this.handleBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
   start() {
     if (this.phase !== "ready") return;
     this.phase = "playing";
+    this.emit();
+  }
+
+  // Se vacía la cola en cualquier fase: un giro pulsado antes de pausar no se aplica al reanudar.
+  pause() {
+    this.turns = [];
+    if (this.phase !== "playing") return;
+    this.paused = true;
+    this.emit();
+  }
+
+  resume() {
+    this.paused = false;
     this.emit();
   }
 
@@ -87,9 +112,48 @@ export class SerpentinaEngine {
     this.emit();
   }
 
+  destroy() {
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener("blur", this.handleBlur);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+  }
+
+  private handleBlur = () => this.pause();
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pause();
+  };
+
+  // En pausa se dibuja sin actualizar: la serpiente no avanza.
+  private loop = (ts: number) => {
+    const dt =
+      this.lastTime === null
+        ? 0
+        : Math.min((ts - this.lastTime) / 1000, MAX_DT);
+    this.lastTime = ts;
+    if (!this.paused) this.update(dt);
+    this.draw();
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  };
+
+  // Solo se emite si cambia el snapshot: evita un render de React por frame.
   private emit() {
-    const { phase, paused, score, level } = this;
-    this.onChange({ phase, paused, score, level });
+    const { phase, paused, score, level, lastSnapshot: last } = this;
+    if (
+      last &&
+      last.phase === phase &&
+      last.paused === paused &&
+      last.score === score &&
+      last.level === level
+    ) {
+      return;
+    }
+    this.lastSnapshot = { phase, paused, score, level };
+    this.onChange(this.lastSnapshot);
   }
 
   // En "ready" ya se ven la serpiente inicial y la primera fruta, sin avanzar.
