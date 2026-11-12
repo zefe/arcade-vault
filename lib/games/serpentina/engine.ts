@@ -35,6 +35,23 @@ export type SerpentinaSnapshot = {
   level: number; // 1–10
 };
 
+const TURN_KEYS: Record<string, Dir> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  KeyW: "up",
+  KeyS: "down",
+  KeyA: "left",
+  KeyD: "right",
+};
+const GAME_KEYS = new Set([
+  ...Object.keys(TURN_KEYS),
+  "Space",
+  "KeyP",
+  "Escape",
+]);
+
 export class SerpentinaEngine {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -75,6 +92,7 @@ export class SerpentinaEngine {
   }
 
   mount() {
+    window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -114,12 +132,40 @@ export class SerpentinaEngine {
 
   destroy() {
     cancelAnimationFrame(this.rafId);
+    window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
     );
   }
+
+  // En "gameover" no se toca el teclado: el modal necesita espacios y WASD.
+  private capturesKeys() {
+    return this.phase !== "gameover";
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (!this.capturesKeys() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!GAME_KEYS.has(e.code)) return;
+    e.preventDefault();
+
+    if (this.phase === "ready") {
+      if (e.code === "Space" && !e.repeat) this.start();
+      return;
+    }
+
+    // "playing"
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (e.repeat) return;
+      if (this.paused) this.resume();
+      else this.pause();
+      return;
+    }
+    const turn = TURN_KEYS[e.code];
+    if (!turn || this.paused || e.repeat) return;
+    this.queueTurn(turn);
+  };
 
   private handleBlur = () => this.pause();
 
