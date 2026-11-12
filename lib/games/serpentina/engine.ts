@@ -2,11 +2,14 @@ import {
   COLS,
   FRUIT_POINTS,
   FRUITS_PER_LEVEL,
+  MAX_DPR,
   MAX_LEVEL,
   MAX_QUEUED_TURNS,
   ROWS,
   START_DIR,
   START_SNAKE,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
   randInt,
   stepForLevel,
 } from "./constants";
@@ -17,6 +20,9 @@ import {
   DIR_VECTORS,
   FRUIT_KINDS,
   OPPOSITE,
+  drawFruit,
+  drawGrid,
+  drawSnake,
 } from "./entities";
 
 export type SerpentinaPhase = "ready" | "playing" | "gameover";
@@ -30,6 +36,8 @@ export type SerpentinaSnapshot = {
 
 export class SerpentinaEngine {
   private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private dpr: number;
   private onChange: (s: SerpentinaSnapshot) => void;
 
   // Cabeza en el índice 0.
@@ -50,6 +58,13 @@ export class SerpentinaEngine {
     onChange: (s: SerpentinaSnapshot) => void,
   ) {
     this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("SerpentinaEngine: canvas 2D no disponible");
+    this.ctx = ctx;
+    // Backing store 800·dpr × 600·dpr; se dibuja en coordenadas del mundo lógico.
+    this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    canvas.width = WORLD_WIDTH * this.dpr;
+    canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
     this.initGame("ready");
   }
@@ -167,5 +182,15 @@ export class SerpentinaEngine {
       row: Math.floor(idx / COLS),
       kind: FRUIT_KINDS[randInt(FRUIT_KINDS.length)],
     };
+  }
+
+  // Solo el mundo: score, nivel, pausa y game over los pinta React.
+  private draw() {
+    const ctx = this.ctx;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    drawGrid(ctx);
+    if (this.fruit) drawFruit(ctx, this.fruit);
+    drawSnake(ctx, this.snake, this.dir);
   }
 }
