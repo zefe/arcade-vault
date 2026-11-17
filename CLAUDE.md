@@ -18,6 +18,7 @@ Routes (`app/`): `/` (landing, `components/home.tsx`), `/acerca`, `/juegos` (lib
 - `/spec-impl <NN-spec-name>`: implements a spec whose state is Aprobado; creates branch `spec-NN-<name>`, goes step by step pausing for diff review.
 - `/nuevo-juego <reference folder | catalog id | description>`: specialization of `/spec` for new real games with leaderboard, following the SPEC 04/05 pattern (`.claude/skills/nuevo-juego/`: `SKILL.md`, `patron-juego-real.md`, `template.md`). Saves spec in Borrador; then `/spec-impl`.
 - New game flow: `game-planner` agent (pick the game) → `/nuevo-juego` (spec in Borrador) → approve → `/spec-impl`.
+- Game jam flow: `game-jam` agent + theme → specs in `specs/game-jam/<game-id>/` (Borrador) → review/approve → `/spec-impl`.
 - `/spec` and `/spec-impl` come from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (pinned in `skills-lock.json`; install: `npx skills@latest add Klerith/fernando-skills`).
 - Spec header: `> **Estado:**` (Borrador → Aprobado → Implementado), `Depende de`, `Fecha`, `Objetivo`. When done, set state to Implementado and update this file.
 
@@ -38,6 +39,9 @@ Subagents live in `.claude/agents/`; project memory in `.claude/agent-memory/<ag
   - Memory: suggestions TODO `references/game-suggestions-todo.md` (IDs `S-NNN`, never deleted, only change state: pendiente / en curso / implementado / descartado) + `.claude/agent-memory/game-planner/MEMORY.md` (user preferences, rejections with reason, learned criteria). Never repeats pending or discarded suggestions.
   - Never writes specs, code, migrations or DB data.
 - When a game moves to spec/implemented, update its entry in `references/game-suggestions-todo.md`.
+- `game-jam` (`.claude/agents/game-jam.md`, model opus, `memory: project`): given a theme, autonomously designs one original game (3 internal concepts scored /35, picks 1) and writes 2–3 complete specs in `Borrador` to `specs/game-jam/<game-id>/` (`01-juego-<id>.md` core playable + ranked insert; `02-<id>-<contenido>.md` progression; optional `03-<id>-<extra>.md`), same format as SPEC 06–08. Invoke e.g. "usa game-jam con el tema océano".
+  - Always a new `games` row; no questions (defaults recorded in Decisiones); read-only SQL; never writes code, `.sql` files or `references/`.
+  - Memory: `.claude/agent-memory/game-jam/MEMORY.md` (themes, ids, discarded concepts).
 
 ## Tooling
 
