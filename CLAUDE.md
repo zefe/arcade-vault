@@ -17,6 +17,7 @@ Routes (`app/`): `/` (landing, `components/home.tsx`), `/acerca`, `/juegos` (lib
 - `/spec <feature>`: guided spec designer (asks questions, builds section by section).
 - `/spec-impl <NN-spec-name>`: implements a spec whose state is Aprobado; creates branch `spec-NN-<name>`, goes step by step pausing for diff review.
 - `/nuevo-juego <reference folder | catalog id | description>`: specialization of `/spec` for new real games with leaderboard, following the SPEC 04/05 pattern (`.claude/skills/nuevo-juego/`: `SKILL.md`, `patron-juego-real.md`, `template.md`). Saves spec in Borrador; then `/spec-impl`.
+- New game flow: `game-planner` agent (pick the game) → `/nuevo-juego` (spec in Borrador) → approve → `/spec-impl`.
 - `/spec` and `/spec-impl` come from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (pinned in `skills-lock.json`; install: `npx skills@latest add Klerith/fernando-skills`).
 - Spec header: `> **Estado:**` (Borrador → Aprobado → Implementado), `Depende de`, `Fecha`, `Objetivo`. When done, set state to Implementado and update this file.
 
@@ -26,13 +27,25 @@ Specs: 01 MVP pantallas · 02 landing y acerca · 03 integración Supabase · 04
 
 Usa siempre /frontend-design para diseñar la interfaz de usuario.
 
+## Agents
+
+Subagents live in `.claude/agents/`; project memory in `.claude/agent-memory/<agent>/` (committed).
+
+- `game-planner` (`.claude/agents/game-planner.md`, model opus, `memory: project`): plans and decides which game fits the platform next. Invoke when asking for ideas, the next game, or to evaluate a proposal (e.g. "usa game-planner para sugerir el próximo juego").
+  - Reads `CLAUDE.md`, `references/implemented-games.md`, specs, `lib/games/`, `references/started-games/`, `patron-juego-real.md`; optional read-only SQL on `games`.
+  - Scores candidates on 7 criteria (1–5 each, /35: technical viability, leaderboard, variety, controls, neon aesthetics, `PlayerShell` fit, originality) + effort S/M/L. Prioritizes catalog games without engine (`ranked = false`).
+  - Proposes 3 candidates, picks 1, returns a ready `/nuevo-juego <...>` command.
+  - Memory: suggestions TODO `references/game-suggestions-todo.md` (IDs `S-NNN`, never deleted, only change state: pendiente / en curso / implementado / descartado) + `.claude/agent-memory/game-planner/MEMORY.md` (user preferences, rejections with reason, learned criteria). Never repeats pending or discarded suggestions.
+  - Never writes specs, code, migrations or DB data.
+- When a game moves to spec/implemented, update its entry in `references/game-suggestions-todo.md`.
+
 ## Tooling
 
 - Scripts: `npm run dev | build | start | lint | format | db:types`.
 - Prettier (`.prettierrc.json`: semi, double quotes, trailing commas) + ESLint 9 flat config (`next/core-web-vitals`, `next/typescript`, `eslint-config-prettier`).
 - Hook `.claude/hooks/format-lint.sh` (PostToolUse on Write/Edit): runs Prettier and `eslint --fix` on the edited file; ESLint errors block (exit 2) — fix them, don't bypass.
 - Supabase MCP configured in `.mcp.json` (project `qkbdukluudjmeslfezke`): use it to inspect tables, run SQL, apply migrations.
-- `references/` (ignored by ESLint, not app code): `templates/` original UI prototype (React UMD + Babel, `styles.css` ported to `globals.css`), `started-games/` reference games (`02-asteroids`, `03-tetris`, `04-arkanoid`) used as input for `/nuevo-juego`, `source-assets/` raw assets. Don't ship assets taken from commercial games (e.g. `snake-assets/` is reference only; SPEC 08 draws original vector fruit).
+- `references/` (ignored by ESLint, not app code): `templates/` original UI prototype (React UMD + Babel, `styles.css` ported to `globals.css`), `started-games/` reference games (`02-asteroids`, `03-tetris`, `04-arkanoid`) used as input for `/nuevo-juego`, `source-assets/` raw assets, `implemented-games.md` (real games summary), `game-suggestions-todo.md` (game-planner TODO). Don't ship assets taken from commercial games (e.g. `snake-assets/` is reference only; SPEC 08 draws original vector fruit).
 
 ## Stack notes
 
