@@ -1,13 +1,13 @@
-# SPEC JAM ranaria-neon 03 — Controles táctiles y feedback visual de RANARIA NEÓN
+# SPEC JAM ranaria 03 — Controles táctiles y feedback visual de RANARIA
 
 > **Estado:** Borrador
-> **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, `game-jam/ranaria-neon/01-juego-ranaria-neon`, `game-jam/ranaria-neon/02-ranaria-neon-niveles`
-> **Fecha:** 2026-11-17
-> **Objetivo:** Hacer RANARIA NEÓN jugable en móvil con deslizar y tocar, y añadir popups de puntos, salpicaduras y destellos que expliquen cada suma y cada muerte.
+> **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, `game-jam/ranaria/01-juego-ranaria`, `game-jam/ranaria/02-ranaria-niveles`
+> **Fecha:** 2026-11-18
+> **Objetivo:** Hacer RANARIA jugable en móvil con deslizar y tocar, y añadir popups de puntos, salpicaduras y destellos que expliquen cada suma y cada muerte.
 
 ## Por qué existe esta spec
 
-RANARIA NEÓN es un juego de un salto por gesto: se presta al táctil mejor que cualquier otro juego real del catálogo, que hoy solo avisan `REQUIERE TECLADO`.
+RANARIA es un juego de un salto por gesto: se presta al táctil mejor que cualquier otro juego real del catálogo, que hoy solo avisan `REQUIERE TECLADO`.
 Tras la 01 y la 02 la puntuación tiene cuatro fuentes (avance, nenúfar, tiempo, luciérnaga) más el bonus de ronda y las vidas extra, pero el jugador solo ve subir un número en el HUD.
 Tampoco distingue a simple vista si murió por agua, por boya hundida o por vehículo.
 Esta spec añade control táctil propio y feedback en el canvas sin tocar el balance de la 02.
@@ -18,7 +18,7 @@ Será el primer juego real con `controls = 'TECLADO / TÁCTIL'`; el patrón de g
 **Dentro:**
 
 - Gestos táctiles sobre el canvas: deslizar en 4 direcciones salta en esa dirección; tocar salta hacia arriba.
-- `touch-action: none` en el canvas de RANARIA NEÓN para que los gestos no desplacen la página.
+- `touch-action: none` en el canvas de RANARIA para que los gestos no desplacen la página.
 - Overlay de `ready` en táctil: `TOCA PARA EMPEZAR` sustituye a `REQUIERE TECLADO` y tocar el overlay llama a `start()`.
 - Popups de puntos en el canvas: `+10` por avance, `+N` al llegar a un nenúfar (nenúfar, tiempo y luciérnaga sumados), `RONDA +N` al completar la ronda y `+1 VIDA` al ganar una vida.
 - Salpicadura de partículas al caer al agua o con una boya hundida; la muerte por vehículo, anguila, seto o tiempo conserva el aspa de la 01.
@@ -38,19 +38,19 @@ Será el primer juego real con `controls = 'TECLADO / TÁCTIL'`; el patrón de g
 
 ## Modelo de datos
 
-Sin cambios de esquema. Migración `supabase/migrations/0007_ranaria_neon_tactil.sql`:
+Sin cambios de esquema. Migración `supabase/migrations/0007_ranaria_tactil.sql`:
 
 ```sql
 update public.games
 set controls = 'TECLADO / TÁCTIL'
-where id = 'ranaria-neon';
+where id = 'ranaria';
 ```
 
 `long` no cambia: describe el juego, no los controles.
 
-Contrato del motor: `RanariaNeonPhase`, `RanariaNeonSnapshot` y los métodos públicos no cambian. El motor registra los listeners de puntero del canvas en `mount()` y los quita en `destroy()`.
+Contrato del motor: `RanariaPhase`, `RanariaSnapshot` y los métodos públicos no cambian. El motor registra los listeners de puntero del canvas en `mount()` y los quita en `destroy()`.
 
-Entidades nuevas (`lib/games/ranaria-neon/entities.ts`):
+Entidades nuevas (`lib/games/ranaria/entities.ts`):
 
 ```ts
 export type PopupKind = "advance" | "pad" | "round" | "life";
@@ -93,7 +93,7 @@ Convenciones:
   - Cada gesto entra por el mismo camino que una tecla: mismo búfer de 1 durante el salto, mismas fases activas (`playing`, sin pausa ni muerte).
   - `pointercancel`, `pause()`, `blur` y `visibilitychange` descartan el puntero en curso.
   - `preventDefault` en `pointerdown` solo fuera de `gameover`.
-- `.ranaria-neon-crt canvas { touch-action: none; }`.
+- `.ranaria-crt canvas { touch-action: none; }`.
 - Popups:
   - Duración `POPUP_TIME = 0.7` s; suben 30 px y su alpha baja de 1 a 0 de forma lineal. Con `reducedMotion`, no suben.
   - Máximo `MAX_POPUPS = 8`; al superar el máximo se descarta el más antiguo.
@@ -129,16 +129,16 @@ Entradas:
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para el overlay táctil y el estilo de popups y destellos.
-2. Añadir a `lib/games/ranaria-neon/constants.ts` `SWIPE_MIN`, `SWIPE_MAX_TIME`, `TAP_MAX`, `TAP_MAX_TIME`, `POPUP_TIME`, `MAX_POPUPS`, `SPLASH_TIME` y `FLASH_TIME`.
+2. Añadir a `lib/games/ranaria/constants.ts` `SWIPE_MIN`, `SWIPE_MAX_TIME`, `TAP_MAX`, `TAP_MAX_TIME`, `POPUP_TIME`, `MAX_POPUPS`, `SPLASH_TIME` y `FLASH_TIME`.
 3. Añadir a `entities.ts` `Popup`, `Particle`, `Flash`, `drawPopup`, `drawParticle` y `drawFlash`.
 4. Refactorizar en `engine.ts` la entrada de salto a un único método privado `requestHop(dir)` usado por teclado y gestos. Verificar: el teclado se comporta igual que en la 02.
 5. Añadir los listeners `pointerdown`, `pointerup` y `pointercancel` del canvas en `mount()` y quitarlos en `destroy()`, con la lógica de gesto de Convenciones.
 6. Añadir la creación de popups, salpicaduras y destellos en los puntos de avance, nenúfar, ronda, vida extra y muerte por agua, y su actualización y dibujo.
 7. Añadir `reducedMotion` con `matchMedia` y su listener `change`, retirado en `destroy()`.
-8. Cambiar `components/ranaria-neon-player.tsx`: en táctil el overlay de `ready` muestra `TOCA PARA EMPEZAR`, es pulsable y llama a `start()` tras `blurFocused()`; en escritorio no cambia.
-9. Añadir a `app/globals.css` `touch-action: none` en `.ranaria-neon-crt canvas` y el estilo pulsable de `.ranaria-neon-touch`.
-10. Crear la migración `0007_ranaria_neon_tactil.sql` (renumerar si está tomada), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
-11. Actualizar la ficha de `ranaria-neon` en `references/implemented-games.md` (controles `TECLADO / TÁCTIL`) y `CLAUDE.md` (Stack notes: primer juego real con gestos táctiles).
+8. Cambiar `components/ranaria-player.tsx`: en táctil el overlay de `ready` muestra `TOCA PARA EMPEZAR`, es pulsable y llama a `start()` tras `blurFocused()`; en escritorio no cambia.
+9. Añadir a `app/globals.css` `touch-action: none` en `.ranaria-crt canvas` y el estilo pulsable de `.ranaria-touch`.
+10. Crear la migración `0007_ranaria_tactil.sql` (renumerar si está tomada), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
+11. Actualizar la ficha de `ranaria` en `references/implemented-games.md` (controles `TECLADO / TÁCTIL`) y `CLAUDE.md` (Stack notes: primer juego real con gestos táctiles).
 12. Pasar `npm run lint` y `npm run build`; corregir errores y warnings.
 
 ## Criterios de aceptación
@@ -146,7 +146,7 @@ Entradas:
 **Build y consola**
 
 - [ ] `npm run build` termina sin errores y `npm run lint` sin errores.
-- [ ] `/juegos/ranaria-neon/jugar` no muestra errores ni warnings de hidratación en consola, en escritorio ni en emulación móvil.
+- [ ] `/juegos/ranaria/jugar` no muestra errores ni warnings de hidratación en consola, en escritorio ni en emulación móvil.
 
 **Inicio**
 
@@ -189,13 +189,13 @@ Entradas:
 
 - [ ] Al perder la última vida se abre el modal con la puntuación real.
 - [ ] En táctil, el campo de nombre del modal recibe el foco y el teclado virtual escribe con normalidad.
-- [ ] GUARDAR PUNTUACIÓN añade a `scores` una fila con `game_id = 'ranaria-neon'` y la puntuación mostrada.
+- [ ] GUARDAR PUNTUACIÓN añade a `scores` una fila con `game_id = 'ranaria'` y la puntuación mostrada.
 - [ ] JUGAR DE NUEVO empieza sin popups, partículas ni destellos de la partida anterior.
 
 **Ranking**
 
-- [ ] `select controls from games where id = 'ranaria-neon'` devuelve `TECLADO / TÁCTIL`.
-- [ ] La ficha de `ranaria-neon` muestra `TECLADO / TÁCTIL`.
+- [ ] `select controls from games where id = 'ranaria'` devuelve `TECLADO / TÁCTIL`.
+- [ ] La ficha de `ranaria` muestra `TECLADO / TÁCTIL`.
 - [ ] `get_advisors` de seguridad no reporta `ERROR`.
 
 **Ciclo de vida**
@@ -206,7 +206,7 @@ Entradas:
 **Regresiones**
 
 - [ ] `/juegos/rocas/jugar`, `/juegos/caida/jugar` y `/juegos/bloque-buster/jugar` siguen mostrando su aviso de táctil y conservan sus mecánicas.
-- [ ] `/juegos/ranaria/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
+- [ ] `/juegos/gloton/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
 - [ ] `git status` no muestra cambios en `references/`.
 
 **Limpieza**

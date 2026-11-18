@@ -1,15 +1,15 @@
-# SPEC JAM ranaria-neon 01 — Juego RANARIA NEÓN real en el reproductor
+# SPEC JAM ranaria 01 — Juego RANARIA real en el reproductor
 
 > **Estado:** Borrador
 > **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07
-> **Fecha:** 2026-11-17
-> **Objetivo:** Crear un juego de cruce por rejilla como motor TypeScript en canvas para que `/juegos/ranaria-neon/jugar` sea un juego real con ranking, sobre `PlayerShell`.
+> **Fecha:** 2026-11-18
+> **Objetivo:** Crear un juego de cruce por rejilla como motor TypeScript en canvas para que `/juegos/ranaria/jugar` sea un juego real con ranking, sobre `PlayerShell`.
 
 ## Por qué existe esta spec
 
 El tema de la jam fija el concepto: una rana cruza carriles de tráfico y un río de troncos por rejilla hasta los nenúfares, contra reloj, y puntúa por avance, nenúfar y tiempo sobrante.
-El catálogo ya tiene la fila `ranaria` (RANARIA, `ranked = false`, `cover-rana`, orden 7), que es la simulación de SPEC 01 con este mismo concepto.
-Las reglas de la jam exigen una fila nueva: esta spec crea `ranaria-neon` y deja `ranaria` como simulación (ver Decisiones y Riesgos).
+RANARIA es hoy la simulación de SPEC 01: la fila `ranaria` (`ranked = false`, `cover-rana`, orden 7) ya describe este concepto, pero su score sube solo.
+El usuario decidió el 2026-11-18 reutilizar esa fila en vez de crear una nueva, como hicieron SPEC 06–08.
 No hay código de referencia: mecánicas, carriles, balance y dibujo se diseñan aquí, con arte vectorial neón original y sin assets.
 El registro `components/game-players.ts` y el HUD opcional de `PlayerShell` ya existen desde SPEC 06: esta spec solo añade una entrada y usa `score`, `lives` y `level` tal cual.
 Aporta a la plataforma la primera mecánica de timing y cruce, distinta de disparo (ROCAS), encaje (CAÍDA), rebote (BLOQUE BUSTER) y crecimiento (SERPENTINA).
@@ -18,7 +18,7 @@ Aporta a la plataforma la primera mecánica de timing y cruce, distinta de dispa
 
 **Dentro:**
 
-- Motor en `lib/games/ranaria-neon/`, sin globals, con ciclo de vida explícito y limpieza completa al desmontar.
+- Motor en `lib/games/ranaria/`, sin globals, con ciclo de vida explícito y limpieza completa al desmontar.
 - Mecánicas:
   - Rejilla de 15 columnas × 12 filas de 50 px; la rana salta una casilla por pulsación.
   - Mitad inferior: acera de salida (fila 11), 4 carriles de tráfico (filas 7–10) y mediana segura (fila 6).
@@ -35,15 +35,15 @@ Aporta a la plataforma la primera mecánica de timing y cruce, distinta de dispa
 - Overlay inicial con controles, `PULSA ESPACIO` y `REQUIERE TECLADO` en táctil.
 - PAUSA real con botón, `P` o `Esc`, y auto-pausa al perder foco o cambiar de pestaña.
 - FIN y perder la última vida abren el modal FIN DEL JUEGO existente.
-- Fila nueva `ranaria-neon` en `games` con `ranked = true` y `controls = 'TECLADO'`, y clase `cover-rana-neon` en `globals.css`.
-- Entrada `"ranaria-neon": RanariaNeonPlayer` en `GAME_PLAYERS`.
+- Guardado en `scores` con `game_id = 'ranaria'` mediante una migración que pone `ranked = true` en la fila existente.
+- Ficha de `ranaria` corregida: `long` fiel a lo implementado y `controls = 'TECLADO'`.
+- Entrada `"ranaria": RanariaPlayer` en `GAME_PLAYERS`.
 
 **Fuera de alcance (specs futuras):**
 
-- Niveles con trazados de carril propios, boyas que se sumergen, anguila en la mediana, luciérnaga de bonus, tiempo por rana decreciente y vida extra: SPEC JAM `ranaria-neon` 02.
-- Controles táctiles (deslizar y tocar), popups de puntos y salpicaduras: SPEC JAM `ranaria-neon` 03.
+- Niveles con trazados de carril propios, boyas que se sumergen, anguila en la mediana, luciérnaga de bonus, tiempo por rana decreciente y vida extra: SPEC JAM `ranaria` 02.
+- Controles táctiles (deslizar y tocar), popups de puntos y salpicaduras: SPEC JAM `ranaria` 03.
 - Sonido.
-- Retirar, ocultar o reutilizar la fila simulada `ranaria`.
 - Antifraude, topes de score o Auth real.
 - Revisar `TOP JUGADORES` de Home, que compara marcas de juegos distintos.
 - Implementar otros juegos.
@@ -51,41 +51,35 @@ Aporta a la plataforma la primera mecánica de timing y cruce, distinta de dispa
 
 ## Modelo de datos
 
-Sin cambios de esquema. Migración `supabase/migrations/0005_juego_ranaria_neon.sql`:
+Sin cambios de esquema. Migración `supabase/migrations/0005_juego_ranaria.sql`:
 
 ```sql
-insert into public.games (id, title, short, long, cat, cover, color, controls, ranked, sort_order)
-values (
-  'ranaria-neon',
-  'RANARIA NEÓN',
-  'Salta entre tráfico y troncos hasta los nenúfares.',
-  'Guía a una rana de neón casilla a casilla: cruza cuatro carriles de tráfico, salta sobre troncos y boyas a la deriva y alcanza uno de los cinco nenúfares antes de que se agoten sus 30 segundos. Cada fila nueva suma puntos, cada nenúfar más, y el tiempo sobrante es bonus. Llena los cinco para subir de nivel y acelerar el río y la carretera. Tienes 3 vidas.',
-  'ARCADE',
-  'cover-rana-neon',
-  'green',
-  'TECLADO',
-  true,
-  9
-);
+update public.games
+set ranked = true,
+    controls = 'TECLADO',
+    long = 'Guía a una rana de neón casilla a casilla: cruza cuatro carriles de tráfico, salta sobre troncos y boyas a la deriva y alcanza uno de los cinco nenúfares antes de que se agoten sus 30 segundos. Cada fila nueva suma puntos, cada nenúfar más, y el tiempo sobrante es bonus. Llena los cinco para subir de nivel y acelerar el río y la carretera. Tienes 3 vidas.'
+where id = 'ranaria';
 ```
 
-Contrato del motor (`lib/games/ranaria-neon/engine.ts`):
+`title` (`RANARIA`), `short`, `cat` (`ARCADE`), `cover` (`cover-rana`), `color` (`green`) y `sort_order` (`7`) no cambian. La tabla no tiene columna `description`: la descripción larga es `long`.
+
+Contrato del motor (`lib/games/ranaria/engine.ts`):
 
 ```ts
-export type RanariaNeonPhase = "ready" | "playing" | "gameover";
+export type RanariaPhase = "ready" | "playing" | "gameover";
 
-export type RanariaNeonSnapshot = {
-  phase: RanariaNeonPhase;
+export type RanariaSnapshot = {
+  phase: RanariaPhase;
   paused: boolean;
   score: number;
   lives: number; // 0–3
   level: number; // 1, 2, 3…
 };
 
-export class RanariaNeonEngine {
+export class RanariaEngine {
   constructor(
     canvas: HTMLCanvasElement,
-    onChange: (s: RanariaNeonSnapshot) => void,
+    onChange: (s: RanariaSnapshot) => void,
   );
   mount(): void; // registra listeners, arranca el loop y queda en "ready"
   start(): void; // "ready" → "playing"
@@ -99,7 +93,7 @@ export class RanariaNeonEngine {
 
 El tiempo restante no va en el snapshot: cambia en cada frame y lo dibuja el canvas.
 
-Entidades (`lib/games/ranaria-neon/entities.ts`):
+Entidades (`lib/games/ranaria/entities.ts`):
 
 ```ts
 export type Dir = "up" | "down" | "left" | "right";
@@ -144,7 +138,7 @@ export const GAME_PLAYERS: Record<string, ComponentType<{ game: Game }>> = {
   caida: CaidaPlayer,
   "bloque-buster": BloqueBusterPlayer,
   // serpentina: SerpentinaPlayer, si SPEC 08 ya está implementada
-  "ranaria-neon": RanariaNeonPlayer,
+  ranaria: RanariaPlayer,
 };
 ```
 
@@ -199,7 +193,7 @@ Convenciones:
   - No hay puntuación máxima de partida: las rondas no terminan mientras queden vidas. Llegar a 99.999.999 exige unas 37.700 rondas perfectas, inalcanzable en la práctica.
 - Ronda completa: bonus, nenúfares vacíos, `level + 1`, rana nueva en la salida con 30 s; los carriles no se recolocan.
 - En `ready` se ven el mundo y la rana en la salida con los carriles quietos en su `offset` inicial y la barra de tiempo llena.
-- Colores en `lib/games/ranaria-neon/constants.ts`, con los valores de los tokens de `globals.css` y 4 derivados:
+- Colores en `lib/games/ranaria/constants.ts`, con los valores de los tokens de `globals.css` y 4 derivados:
   - Rana: `#00ff88` con glow; ojos `#e6e9ff`; ranas en nenúfares: `#00ff88` sin glow.
   - Moto `#f5ff00`, coche `#ff006e`, camión derivado `#ff8a00`, bólido derivado `#ff3b3b`; carrocería con trazo de 2 px y relleno del mismo color con alpha 0,25.
   - Tronco: trazo `#ffcf3a` (`--gold`), relleno `rgba(255,207,58,0.15)` y vetas de 1 px.
@@ -229,19 +223,19 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para el overlay, los estilos y la cover.
-2. Crear `lib/games/ranaria-neon/constants.ts` con rejilla, tabla de carriles de nivel 1, valores de rana, tiempo, puntos, `speedFactor`, colores, `MAX_DT`, `MAX_DPR`, `clamp` y `mod`.
-3. Crear `lib/games/ranaria-neon/entities.ts` con los tipos, `moverX` y las funciones de dibujo de fondo, carriles, vehículos, troncos, boyas, nenúfares, rana, muerte y barra de tiempo. Cada `draw` recibe `ctx`.
-4. Crear `lib/games/ranaria-neon/engine.ts` con estado, carriles, saltos con búfer, arrastre, choques, meta, tiempo, muertes, vidas, puntuación, rondas y `end()`, sin dibujo ni loop. Sin reinicio por tecla en `gameover`.
+2. Crear `lib/games/ranaria/constants.ts` con rejilla, tabla de carriles de nivel 1, valores de rana, tiempo, puntos, `speedFactor`, colores, `MAX_DT`, `MAX_DPR`, `clamp` y `mod`.
+3. Crear `lib/games/ranaria/entities.ts` con los tipos, `moverX` y las funciones de dibujo de fondo, carriles, vehículos, troncos, boyas, nenúfares, rana, muerte y barra de tiempo. Cada `draw` recibe `ctx`.
+4. Crear `lib/games/ranaria/engine.ts` con estado, carriles, saltos con búfer, arrastre, choques, meta, tiempo, muertes, vidas, puntuación, rondas y `end()`, sin dibujo ni loop. Sin reinicio por tecla en `gameover`.
 5. Añadir el dibujo completo del mundo sin HUD ni overlays. Configurar el backing store con `dpr`.
 6. Añadir el loop y los listeners: `mount()`, `destroy()`, `pause()`, `resume()`; `onChange` solo si cambia el snapshot; en pausa se dibuja sin `update`; al pausar se vacían `keys` y el búfer de salto; `blur` y `visibilitychange` pausan.
 7. Añadir la gestión de teclas por fase con `preventDefault` solo fuera de `gameover`; los saltos ignoran `e.repeat`.
-8. Crear `components/ranaria-neon-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect`, `destroy()` en el cleanup y `score`, `lives` y `level` en el HUD.
+8. Crear `components/ranaria-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect`, `destroy()` en el cleanup y `score`, `lives` y `level` en el HUD.
 9. Añadir el overlay de `ready` con controles, `PULSA ESPACIO` y `REQUIERE TECLADO` en táctil (`useSyncExternalStore`).
 10. Conectar los botones: PAUSA y FIN desactivados en `ready`, `blur()` tras cada click, `pauseHint` `PULSA P O REANUDAR PARA CONTINUAR`.
-11. Añadir `"ranaria-neon": RanariaNeonPlayer` a `GAME_PLAYERS`.
-12. Añadir a `app/globals.css` `.ranaria-neon-crt` (misma fórmula 4:3 que `.rocas-crt`), `.ranaria-neon-ready`, `.ranaria-neon-controls`, `.ranaria-neon-start`, `.ranaria-neon-touch` y `.cover-rana-neon` (franjas de río y carretera con una rana vectorial, distinta de `.cover-rana`).
-13. Crear la migración `0005_juego_ranaria_neon.sql` (renumerar si `0005` ya está tomada al implementar), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
-14. Actualizar `CLAUDE.md` (Stack notes y lista de specs) con `ranaria-neon` como juego real, y `references/implemented-games.md` con su fila y su ficha; mover `ranaria` a la nota de simulación duplicada.
+11. Añadir `"ranaria": RanariaPlayer` a `GAME_PLAYERS`.
+12. Añadir a `app/globals.css` `.ranaria-crt` (misma fórmula 4:3 que `.rocas-crt`), `.ranaria-ready`, `.ranaria-controls`, `.ranaria-start` y `.ranaria-touch`. `.cover-rana` ya existe y no cambia.
+13. Crear la migración `0005_juego_ranaria.sql` (renumerar si `0005` ya está tomada al implementar), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
+14. Actualizar `CLAUDE.md` (Stack notes y lista de specs) con `ranaria` como juego real, y `references/implemented-games.md`: añadir su fila y ficha y quitar `ranaria` de la lista de simulaciones. Marcar S-001 como en curso en `references/game-suggestions-todo.md`.
 15. Pasar `npm run lint` y `npm run build`; corregir errores y warnings.
 
 ## Criterios de aceptación
@@ -249,7 +243,7 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 **Build y consola**
 
 - [ ] `npm run build` termina sin errores y `npm run lint` sin errores.
-- [ ] `/juegos/ranaria-neon/jugar` no muestra errores ni warnings de hidratación en consola.
+- [ ] `/juegos/ranaria/jugar` no muestra errores ni warnings de hidratación en consola.
 
 **Inicio**
 
@@ -286,7 +280,6 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 - [ ] Rana, vehículos, troncos, boyas, agua y nenúfares usan los colores de Convenciones y las líneas son nítidas en HiDPI.
 - [ ] La rana mira en la dirección del último salto.
 - [ ] El canvas no carga ninguna imagen ni audio (pestaña Network).
-- [ ] La cover `cover-rana-neon` se ve en la biblioteca y es distinta de `cover-rana`.
 - [ ] A 1440×900, la pantalla CRT completa se ve sin hacer scroll.
 - [ ] Las teclas de juego no desplazan la página durante la partida.
 
@@ -303,19 +296,19 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 - [ ] Al perder la tercera vida se abre el modal con la puntuación real, tras la animación de muerte.
 - [ ] FIN abre el mismo modal con la puntuación actual.
 - [ ] Se pueden escribir espacios y las letras W, A, S y D en el campo de nombre.
-- [ ] GUARDAR PUNTUACIÓN añade a `scores` una fila con `game_id = 'ranaria-neon'` y la puntuación mostrada.
+- [ ] GUARDAR PUNTUACIÓN añade a `scores` una fila con `game_id = 'ranaria'` y la puntuación mostrada.
 - [ ] Terminar con 0 puntos muestra `SIN PUNTOS: NO SE GUARDA`.
 - [ ] JUGAR DE NUEVO empieza en `playing` con nivel `01`, 3 vidas, 0 puntos, nenúfares vacíos y 30 s.
 - [ ] Ninguna tecla con el modal abierto reinicia la partida.
 
 **Ranking**
 
-- [ ] `select id, ranked, sort_order, cover from games where id = 'ranaria-neon'` devuelve `true`, `9` y `cover-rana-neon`.
-- [ ] `select ranked from games where id = 'ranaria'` sigue devolviendo `false`.
+- [ ] `select id from games where ranked` devuelve `rocas`, `caida`, `bloque-buster`, `ranaria` y `serpentina` si SPEC 08 ya está implementada.
+- [ ] `select title, cover, sort_order from games where id = 'ranaria'` devuelve `RANARIA`, `cover-rana` y `7`.
 - [ ] Como `anon`, insertar en un juego no ranked sigue fallando.
 - [ ] `get_advisors` de seguridad no reporta `ERROR`.
-- [ ] Tras guardar, la marca aparece en la ficha de `ranaria-neon`, en su pestaña del Salón y en ACTIVIDAD EN VIVO.
-- [ ] La ficha de `ranaria-neon` muestra `TECLADO` y el texto de `long` de la migración.
+- [ ] Tras guardar, la marca aparece en la ficha de `ranaria`, en su pestaña del Salón y en ACTIVIDAD EN VIVO.
+- [ ] La ficha de `ranaria` muestra `TECLADO` y el texto de `long` de la migración.
 
 **Ciclo de vida**
 
@@ -327,7 +320,7 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 - [ ] `/juegos/rocas/jugar` conserva las mecánicas de SPEC 04 y su HUD muestra Vidas.
 - [ ] `/juegos/caida/jugar` conserva las mecánicas de SPEC 06 y su HUD muestra Líneas sin Vidas.
 - [ ] `/juegos/bloque-buster/jugar` conserva las mecánicas de SPEC 07.
-- [ ] `/juegos/ranaria/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
+- [ ] `/juegos/gloton/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
 - [ ] `git status` no muestra cambios en `references/`.
 
 **Limpieza**
@@ -338,10 +331,11 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 
 - **Sí:** definida por game-jam de forma autónoma a partir del tema «RANARIA: cruza carriles de tráfico y troncos por rejilla hasta los nenúfares contra reloj; puntos por avance, nenúfar y tiempo sobrante». Revisar antes de aprobar.
 - **Sí:** concepto fijado por el usuario, sin generar 3 alternativas. El tema ya define mecánica y puntuación.
-- **Sí:** fila nueva `ranaria-neon`. Regla de la jam: siempre fila nueva, nunca reutilizar una simulación.
-- **No:** id `ranaria`. Choca con la fila simulada existente; las reglas de la jam prohíben coincidir.
-- **No:** reutilizar la fila `ranaria` como en SPEC 06–08. Sería lo natural para la plataforma, pero contradice la regla de la jam; queda como pregunta abierta para el usuario.
-- **Sí:** título `RANARIA NEÓN`, `cover-rana-neon`, `sort_order = 9`, `color = 'green'`. No chocan con ninguna fila, clase ni carpeta, y el verde es el de la rana.
+- **Sí:** reutilizar la fila `ranaria`. Decisión del usuario el 2026-11-18, que anula para esta jam la regla de fila nueva; es el patrón de SPEC 06–08.
+- **No:** fila nueva `ranaria-neon`. Dejaría `ranaria` como simulación duplicada del mismo concepto.
+- **Sí:** conservar `title`, `short`, `cat`, `cover`, `color` y `sort_order`. `cover-rana` (franjas de río y rana verde) ya encaja con el juego.
+- **Sí:** reescribir `long`. La ficha debe describir los 30 s, los nenúfares, la puntuación y las 3 vidas.
+- **Sí:** `gloton` como simulación de regresión. `ranaria` deja de ser simulación.
 - **Sí:** juego de género diseñado desde cero, sin nombres, personajes, trazados ni arte de ningún juego comercial. Regla de la jam.
 - **Sí:** boyas de neón en vez de animales nadadores. Plataforma original que encaja con la estética vectorial.
 - **Sí:** rejilla de 15×12 casillas de 50 px con 25 px de margen. Columna central exacta (rana y nenúfar central en `x = 400`) y mundo 800×600.
@@ -370,28 +364,27 @@ Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 
 ## Riesgos
 
-| Riesgo                                                                             | Mitigación                                                                                                                                 |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Dos juegos del mismo concepto en el catálogo (`ranaria` simulado y `ranaria-neon`) | Pregunta abierta al usuario; si prefiere reutilizar `ranaria`, cambiar la migración a `update … where id = 'ranaria'` y los ids de código. |
-| Número de migración `0005` ocupado al implementar (SPEC 08 reserva `0004`)         | Renumerar al siguiente libre; el contenido no cambia.                                                                                      |
-| React Strict Mode duplica el loop en dev                                           | `destroy()` cancela el RAF y quita listeners; motor creado en `useEffect`.                                                                 |
-| `Espacio` activa el botón con foco                                                 | `blur()` tras cada click y `preventDefault` en la partida.                                                                                 |
-| `preventDefault` global rompe el input del modal (WASD)                            | Nunca en `gameover`; criterio propio con W, A, S y D.                                                                                      |
-| `onChange` en cada frame provoca renders                                           | Solo se emite si cambia el snapshot; el tiempo no está en el snapshot.                                                                     |
-| `shadowBlur` baja los FPS                                                          | Glow solo en rana, vehículos y barra en aviso.                                                                                             |
-| La CRT supera el alto del viewport                                                 | `.ranaria-neon-crt` limita el ancho con `100dvh`.                                                                                          |
-| Entidades que aparecen de golpe al dar la vuelta                                   | `WRAP = 1000` con 200 px fuera de pantalla, mayor que el tronco más largo (200 px).                                                        |
-| Un frame largo hace que un bólido atraviese a la rana sin tocarla                  | Tope de `dt` de 50 ms: el bólido avanza como mucho 7,5 px a 1× y 11,25 px a 1,5×, menos que la caja de 34 px.                              |
-| Saltar en el aire atraviesa un vehículo                                            | Riesgo aceptado: 0,1 s de salto es parte del timing del género y se documenta en Decisiones.                                               |
-| Partidas infinitas a 1,5× con un jugador experto                                   | Riesgo aceptado en la 01; la 02 reduce el tiempo por rana y añade amenazas.                                                                |
-| `TOP JUGADORES` mezcla marcas de juegos con escalas distintas                      | Riesgo aceptado; se revisa en una spec propia.                                                                                             |
+| Riesgo                                                                     | Mitigación                                                                                                    |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Número de migración `0005` ocupado al implementar (SPEC 08 reserva `0004`) | Renumerar al siguiente libre; el contenido no cambia.                                                         |
+| React Strict Mode duplica el loop en dev                                   | `destroy()` cancela el RAF y quita listeners; motor creado en `useEffect`.                                    |
+| `Espacio` activa el botón con foco                                         | `blur()` tras cada click y `preventDefault` en la partida.                                                    |
+| `preventDefault` global rompe el input del modal (WASD)                    | Nunca en `gameover`; criterio propio con W, A, S y D.                                                         |
+| `onChange` en cada frame provoca renders                                   | Solo se emite si cambia el snapshot; el tiempo no está en el snapshot.                                        |
+| `shadowBlur` baja los FPS                                                  | Glow solo en rana, vehículos y barra en aviso.                                                                |
+| La CRT supera el alto del viewport                                         | `.ranaria-crt` limita el ancho con `100dvh`.                                                                  |
+| Entidades que aparecen de golpe al dar la vuelta                           | `WRAP = 1000` con 200 px fuera de pantalla, mayor que el tronco más largo (200 px).                           |
+| Un frame largo hace que un bólido atraviese a la rana sin tocarla          | Tope de `dt` de 50 ms: el bólido avanza como mucho 7,5 px a 1× y 11,25 px a 1,5×, menos que la caja de 34 px. |
+| Saltar en el aire atraviesa un vehículo                                    | Riesgo aceptado: 0,1 s de salto es parte del timing del género y se documenta en Decisiones.                  |
+| Partidas infinitas a 1,5× con un jugador experto                           | Riesgo aceptado en la 01; la 02 reduce el tiempo por rana y añade amenazas.                                   |
+| `TOP JUGADORES` mezcla marcas de juegos con escalas distintas              | Riesgo aceptado; se revisa en una spec propia.                                                                |
 
 ## Lo que **no** entra en esta spec
 
-- Trazados por nivel, boyas que se sumergen, anguila, luciérnaga, tiempo decreciente y vida extra (SPEC JAM `ranaria-neon` 02).
-- Controles táctiles, popups de puntos y salpicaduras (SPEC JAM `ranaria-neon` 03).
+- Trazados por nivel, boyas que se sumergen, anguila, luciérnaga, tiempo decreciente y vida extra (SPEC JAM `ranaria` 02).
+- Controles táctiles, popups de puntos y salpicaduras (SPEC JAM `ranaria` 03).
 - Sonido.
-- Cambios en la fila `ranaria`.
+- Cambios de `title`, `short`, `cover` o `sort_order` de `ranaria`.
 - Antifraude o Auth real.
 - Revisión de `TOP JUGADORES`.
 - Otros juegos.

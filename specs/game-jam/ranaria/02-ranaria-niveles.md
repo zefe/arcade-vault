@@ -1,9 +1,9 @@
-# SPEC JAM ranaria-neon 02 — Niveles, amenazas y bonus de RANARIA NEÓN
+# SPEC JAM ranaria 02 — Niveles, amenazas y bonus de RANARIA
 
 > **Estado:** Borrador
-> **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, `game-jam/ranaria-neon/01-juego-ranaria-neon`
-> **Fecha:** 2026-11-17
-> **Objetivo:** Dar a RANARIA NEÓN una progresión real con 5 trazados de carril, boyas que se sumergen, una anguila en la mediana, una luciérnaga de bonus, tiempo por rana decreciente y vidas extra.
+> **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, `game-jam/ranaria/01-juego-ranaria`
+> **Fecha:** 2026-11-18
+> **Objetivo:** Dar a RANARIA una progresión real con 5 trazados de carril, boyas que se sumergen, una anguila en la mediana, una luciérnaga de bonus, tiempo por rana decreciente y vidas extra.
 
 ## Por qué existe esta spec
 
@@ -17,7 +17,7 @@ Cambia el balance de la 01 (velocidades, tiempo por rana y bonus de ronda); cada
 
 **Dentro:**
 
-- `lib/games/ranaria-neon/levels.ts` con 5 trazados (`LEVELS`), el primero idéntico a la tabla de nivel 1 de la 01.
+- `lib/games/ranaria/levels.ts` con 5 trazados (`LEVELS`), el primero idéntico a la tabla de nivel 1 de la 01.
 - Ciclo de trazados: el nivel `n` usa `LEVELS[(n − 1) mod 5]`; cada vuelta completa a los 5 multiplica las velocidades.
 - Boyas que se sumergen: en los carriles de boyas marcados, una cadena se hunde cada 5 s con aviso previo.
 - Anguila eléctrica en la mediana (fila 6) desde el nivel 3.
@@ -29,7 +29,7 @@ Cambia el balance de la 01 (velocidades, tiempo por rana y bonus de ronda); cada
 
 **Fuera de alcance (specs futuras):**
 
-- Controles táctiles, popups de puntos, salpicaduras y destellos: SPEC JAM `ranaria-neon` 03.
+- Controles táctiles, popups de puntos, salpicaduras y destellos: SPEC JAM `ranaria` 03.
 - Editor o selector de niveles.
 - Más tipos de vehículo o plataforma que los de la 01.
 - Sonido.
@@ -38,19 +38,19 @@ Cambia el balance de la 01 (velocidades, tiempo por rana y bonus de ronda); cada
 
 ## Modelo de datos
 
-Sin cambios de esquema. Migración `supabase/migrations/0006_ranaria_neon_niveles.sql`:
+Sin cambios de esquema. Migración `supabase/migrations/0006_ranaria_niveles.sql`:
 
 ```sql
 update public.games
 set long = 'Guía a una rana de neón casilla a casilla: cruza el tráfico, salta sobre troncos y boyas a la deriva y alcanza uno de los cinco nenúfares antes de que se agote el tiempo. Cinco trazados de carril se alternan y aceleran en cada vuelta; las boyas se hunden, una anguila eléctrica patrulla la mediana y cada nivel resta segundos. Cada fila nueva, cada nenúfar y cada segundo sobrante suman; la luciérnaga vale 200 más y cada 5000 puntos ganas una vida.'
-where id = 'ranaria-neon';
+where id = 'ranaria';
 ```
 
 `title`, `short`, `cat`, `cover`, `color`, `controls`, `ranked` y `sort_order` no cambian.
 
-Contrato del motor: `RanariaNeonPhase`, `RanariaNeonSnapshot` y los métodos públicos de `RanariaNeonEngine` no cambian. `lives` pasa a ir de 0 a 5.
+Contrato del motor: `RanariaPhase`, `RanariaSnapshot` y los métodos públicos de `RanariaEngine` no cambian. `lives` pasa a ir de 0 a 5.
 
-Niveles (`lib/games/ranaria-neon/levels.ts`):
+Niveles (`lib/games/ranaria/levels.ts`):
 
 ```ts
 import type { LaneDef } from "./entities";
@@ -63,7 +63,7 @@ export type LevelDef = {
 export const LEVELS: LevelDef[]; // 5 trazados de la tabla de Convenciones
 ```
 
-Cambios en entidades (`lib/games/ranaria-neon/entities.ts`):
+Cambios en entidades (`lib/games/ranaria/entities.ts`):
 
 ```ts
 export type LaneDef = {
@@ -152,14 +152,14 @@ Teclas: sin cambios respecto a la 01.
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` si se toca algún componente cliente. Aplicar `/frontend-design` para el dibujo de anguila, luciérnaga y boyas sumergidas.
-2. Añadir a `lib/games/ranaria-neon/constants.ts` `DIVE_CYCLE`, los tramos de inmersión, `EEL_SPEED`, `FIREFLY_CYCLE`, `FIREFLY_POINTS`, `MAX_LIVES`, `EXTRA_LIFE_EVERY`, `timeForLevel`, `roundBonus` y el nuevo `speedFactor`; quitar la tabla de carriles de la 01 de este archivo.
-3. Crear `lib/games/ranaria-neon/levels.ts` con `LevelDef` y los 5 `LEVELS` de la tabla.
-4. Ampliar `lib/games/ranaria-neon/entities.ts` con `diving`, `DiveState`, `Eel`, `Firefly`, `diveState`, `drawEel` y `drawFirefly`, y el dibujo de boyas en `warning` y `down`.
+2. Añadir a `lib/games/ranaria/constants.ts` `DIVE_CYCLE`, los tramos de inmersión, `EEL_SPEED`, `FIREFLY_CYCLE`, `FIREFLY_POINTS`, `MAX_LIVES`, `EXTRA_LIFE_EVERY`, `timeForLevel`, `roundBonus` y el nuevo `speedFactor`; quitar la tabla de carriles de la 01 de este archivo.
+3. Crear `lib/games/ranaria/levels.ts` con `LevelDef` y los 5 `LEVELS` de la tabla.
+4. Ampliar `lib/games/ranaria/entities.ts` con `diving`, `DiveState`, `Eel`, `Firefly`, `diveState`, `drawEel` y `drawFirefly`, y el dibujo de boyas en `warning` y `down`.
 5. Cambiar `engine.ts`: carga de trazado por nivel, reloj de inmersión, caída por boya sumergida, anguila, luciérnaga, tiempo por nivel, vidas extra y bonus de ronda. Verificar: el nivel 1 se juega igual que en la 01 salvo el tiempo y la luciérnaga.
 6. Revisar que `restart()` vuelve a nivel 1, 3 vidas, 30 s, trazado 1, anguila inactiva y luciérnaga a 0.
 7. Actualizar la tabla de controles del overlay de `ready` solo si cambia algún texto; las teclas no cambian.
-8. Crear la migración `0006_ranaria_neon_niveles.sql` (renumerar si está tomada), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
-9. Actualizar la ficha de `ranaria-neon` en `references/implemented-games.md` y la línea de specs en `CLAUDE.md`.
+8. Crear la migración `0006_ranaria_niveles.sql` (renumerar si está tomada), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
+9. Actualizar la ficha de `ranaria` en `references/implemented-games.md` y la línea de specs en `CLAUDE.md`.
 10. Pasar `npm run lint` y `npm run build`; corregir errores y warnings.
 
 ## Criterios de aceptación
@@ -167,7 +167,7 @@ Teclas: sin cambios respecto a la 01.
 **Build y consola**
 
 - [ ] `npm run build` termina sin errores y `npm run lint` sin errores.
-- [ ] `/juegos/ranaria-neon/jugar` no muestra errores ni warnings en consola durante 5 niveles.
+- [ ] `/juegos/ranaria/jugar` no muestra errores ni warnings en consola durante 5 niveles.
 
 **Inicio**
 
@@ -209,14 +209,14 @@ Teclas: sin cambios respecto a la 01.
 **Fin de partida y guardado**
 
 - [ ] Al perder la última vida se abre el modal con la puntuación real.
-- [ ] GUARDAR PUNTUACIÓN añade a `scores` una fila con `game_id = 'ranaria-neon'` y la puntuación mostrada.
+- [ ] GUARDAR PUNTUACIÓN añade a `scores` una fila con `game_id = 'ranaria'` y la puntuación mostrada.
 - [ ] JUGAR DE NUEVO empieza en nivel `01`, 3 vidas, 0 puntos, trazado 1, sin anguila y con 30 s.
 - [ ] Ninguna tecla con el modal abierto reinicia la partida.
 
 **Ranking**
 
-- [ ] La ficha de `ranaria-neon` muestra el texto de `long` de la migración `0006`.
-- [ ] `select ranked, controls from games where id = 'ranaria-neon'` sigue devolviendo `true` y `TECLADO`.
+- [ ] La ficha de `ranaria` muestra el texto de `long` de la migración `0006`.
+- [ ] `select ranked, controls from games where id = 'ranaria'` sigue devolviendo `true` y `TECLADO`.
 - [ ] `get_advisors` de seguridad no reporta `ERROR`.
 
 **Ciclo de vida**
@@ -227,7 +227,7 @@ Teclas: sin cambios respecto a la 01.
 **Regresiones**
 
 - [ ] `/juegos/rocas/jugar`, `/juegos/caida/jugar` y `/juegos/bloque-buster/jugar` conservan sus mecánicas.
-- [ ] `/juegos/ranaria/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
+- [ ] `/juegos/gloton/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
 - [ ] `git status` no muestra cambios en `references/`.
 
 **Limpieza**
@@ -269,7 +269,7 @@ Teclas: sin cambios respecto a la 01.
 
 ## Lo que **no** entra en esta spec
 
-- Controles táctiles, popups, salpicaduras y destellos (SPEC JAM `ranaria-neon` 03).
+- Controles táctiles, popups, salpicaduras y destellos (SPEC JAM `ranaria` 03).
 - Editor o selector de niveles.
 - Tipos nuevos de vehículo o plataforma.
 - Amenazas dentro de los nenúfares.
