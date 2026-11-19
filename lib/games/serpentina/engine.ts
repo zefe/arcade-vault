@@ -25,6 +25,7 @@ import {
   drawGrid,
   drawSnake,
 } from "./entities";
+import type { SerpentinaPalette } from "./skins";
 
 export type SerpentinaPhase = "ready" | "playing" | "gameover";
 
@@ -57,6 +58,7 @@ export class SerpentinaEngine {
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: SerpentinaSnapshot) => void;
+  private palette: SerpentinaPalette;
 
   // Cabeza en el índice 0.
   private snake: Cell[] = [];
@@ -78,6 +80,7 @@ export class SerpentinaEngine {
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: SerpentinaSnapshot) => void,
+    palette: SerpentinaPalette, // SKINS[skin] de lib/games/serpentina/skins.ts
   ) {
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
@@ -88,6 +91,7 @@ export class SerpentinaEngine {
     canvas.width = WORLD_WIDTH * this.dpr;
     canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
+    this.palette = palette;
     this.initGame("ready");
   }
 

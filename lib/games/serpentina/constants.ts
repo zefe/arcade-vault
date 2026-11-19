@@ -31,18 +31,9 @@ export const MAX_LEVEL = 10;
 export const FRUIT_POINTS = 10; // × nivel
 export const MAX_QUEUED_TURNS = 2;
 
-// Colores: mismos valores que los tokens de globals.css
-export const COLOR_SNAKE = "#00ff88"; // --green
-export const COLOR_EYE = "#e6e9ff"; // --ink
-export const COLOR_GRID_DOT = "rgba(230,233,255,0.08)";
-export const COLOR_BORDER = "#00f5ff"; // --cyan
-export const COLOR_MAGENTA = "#ff006e"; // --magenta: manzana y cereza
-export const COLOR_LEAF = "#00ff88"; // --green: hoja y rabito
-export const COLOR_LEMON = "#f5ff00"; // --yellow
-export const COLOR_GRAPE = "#00f5ff"; // --cyan
+// Dibujo (los colores salen de la paleta del skin, ver skins.ts)
 export const SNAKE_INSET = 2; // px de margen dentro de la casilla
 export const BORDER_WIDTH = 2; // px
-export const GLOW_BLUR = 12; // solo cabeza y fruta
 
 // Paso por nivel: 150 ms en nivel 1 → 60 ms en nivel 10
 export const stepForLevel = (level: number) =>
