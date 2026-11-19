@@ -302,9 +302,11 @@ export class SerpentinaEngine {
   private draw() {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    drawGrid(ctx);
-    if (this.fruit) drawFruit(ctx, this.fruit);
-    drawSnake(ctx, this.snake, this.dir);
+    // Fondo opaco del skin en cada frame (no clearRect).
+    ctx.fillStyle = this.palette.bg;
+    ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    drawGrid(ctx, this.palette);
+    if (this.fruit) drawFruit(ctx, this.palette, this.fruit);
+    drawSnake(ctx, this.palette, this.snake, this.dir);
   }
 }
