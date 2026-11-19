@@ -1562,6 +1562,106 @@ a {
   }
 }
 
+/* SERPENTINA: mundo 800×600 (4:3), misma fórmula que ROCAS */
+.serpentina-crt {
+  --phosphor: #33ff66;
+  --phosphor-rgb: 51, 255, 102;
+  width: min(100%, max(320px, calc((100dvh - 290px) * 4 / 3 + 48px)));
+  margin-inline: auto;
+}
+
+/* SERPENTINA: overlay inicial */
+/* Franja inferior: la serpiente nace en la fila 12 de 24 (y 300–325 de 600) y queda a la vista. */
+.serpentina-ready {
+  inset: 58% 0 0;
+  background: rgba(0, 0, 0, 0.72);
+  border-top: 1px solid rgba(0, 255, 136, 0.45);
+  box-shadow: inset 0 0 24px rgba(0, 255, 136, 0.16);
+  z-index: 5;
+  padding: 0 12px;
+}
+.serpentina-controls {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+.serpentina-controls > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.serpentina-controls dt {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.serpentina-controls dd {
+  margin: 0;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+}
+/* Teclas en el verde de la ficha (--green), no en el cyan de ROCAS. */
+.serpentina-controls kbd {
+  min-width: 30px;
+  padding: 6px 8px;
+  font-family: var(--pixel);
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--green);
+  background: rgba(0, 255, 136, 0.06);
+  border: 1px solid var(--green);
+  border-bottom-width: 3px;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.35);
+}
+.serpentina-start {
+  font-size: 16px;
+  animation: blink 1.2s steps(1, end) infinite;
+}
+.serpentina-touch {
+  margin-top: 12px;
+  font-size: 10px;
+}
+/* En pantallas estrechas la franja no cabe: el overlay ocupa toda la CRT. */
+@media (max-width: 760px) {
+  .serpentina-ready {
+    inset: 0;
+    border-top: 0;
+    box-shadow: none;
+  }
+}
+@media (max-width: 560px) {
+  .serpentina-controls {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .serpentina-controls dd {
+    font-size: 11px;
+  }
+  .serpentina-controls kbd {
+    min-width: 22px;
+    padding: 3px 5px;
+    font-size: 8px;
+    border-bottom-width: 2px;
+  }
+  .serpentina-start {
+    font-size: 11px;
+  }
+  .serpentina-touch {
+    margin-top: 6px;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .serpentina-start {
+    animation: none;
+  }
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute;

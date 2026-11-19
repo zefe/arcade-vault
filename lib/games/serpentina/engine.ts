@@ -1,0 +1,319 @@
+import {
+  COLS,
+  FRUIT_POINTS,
+  FRUITS_PER_LEVEL,
+  MAX_DPR,
+  MAX_DT,
+  MAX_LEVEL,
+  MAX_QUEUED_TURNS,
+  ROWS,
+  START_DIR,
+  START_SNAKE,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+  randInt,
+  stepForLevel,
+} from "./constants";
+import {
+  type Cell,
+  type Dir,
+  type Fruit,
+  DIR_VECTORS,
+  FRUIT_KINDS,
+  OPPOSITE,
+  drawFruit,
+  drawGrid,
+  drawSnake,
+} from "./entities";
+import type { SerpentinaPalette } from "./skins";
+
+export type SerpentinaPhase = "ready" | "playing" | "gameover";
+
+export type SerpentinaSnapshot = {
+  phase: SerpentinaPhase;
+  paused: boolean;
+  score: number;
+  level: number; // 1–10
+};
+
+const TURN_KEYS: Record<string, Dir> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  KeyW: "up",
+  KeyS: "down",
+  KeyA: "left",
+  KeyD: "right",
+};
+const GAME_KEYS = new Set([
+  ...Object.keys(TURN_KEYS),
+  "Space",
+  "KeyP",
+  "Escape",
+]);
+
+export class SerpentinaEngine {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private dpr: number;
+  private onChange: (s: SerpentinaSnapshot) => void;
+  private palette: SerpentinaPalette;
+
+  // Cabeza en el índice 0.
+  private snake: Cell[] = [];
+  private dir: Dir = START_DIR;
+  private turns: Dir[] = [];
+  private fruit: Fruit | null = null;
+  private fruitsEaten = 0;
+  private acc = 0; // segundos acumulados hacia el próximo paso
+
+  private phase: SerpentinaPhase = "ready";
+  private paused = false;
+  private score = 0;
+  private level = 1;
+
+  private rafId = 0;
+  private lastTime: number | null = null;
+  private lastSnapshot: SerpentinaSnapshot | null = null;
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    onChange: (s: SerpentinaSnapshot) => void,
+    palette: SerpentinaPalette, // SKINS[skin] de lib/games/serpentina/skins.ts
+  ) {
+    this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("SerpentinaEngine: canvas 2D no disponible");
+    this.ctx = ctx;
+    // Backing store 800·dpr × 600·dpr; se dibuja en coordenadas del mundo lógico.
+    this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    canvas.width = WORLD_WIDTH * this.dpr;
+    canvas.height = WORLD_HEIGHT * this.dpr;
+    this.onChange = onChange;
+    this.palette = palette;
+    this.initGame("ready");
+  }
+
+  mount() {
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("blur", this.handleBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  start() {
+    if (this.phase !== "ready") return;
+    this.phase = "playing";
+    this.emit();
+  }
+
+  // Se vacía la cola en cualquier fase: un giro pulsado antes de pausar no se aplica al reanudar.
+  pause() {
+    this.turns = [];
+    if (this.phase !== "playing") return;
+    this.paused = true;
+    this.emit();
+  }
+
+  resume() {
+    this.paused = false;
+    this.emit();
+  }
+
+  end() {
+    this.phase = "gameover";
+    this.paused = false;
+    this.turns = [];
+    this.emit();
+  }
+
+  restart() {
+    this.initGame("playing");
+    this.emit();
+  }
+
+  // Cambia la paleta en caliente: no reinicia ni toca el estado de la partida.
+  // Repinta ya si el mundo está quieto; en juego lo hace el siguiente frame.
+  setSkin(palette: SerpentinaPalette) {
+    this.palette = palette;
+    if (this.phase !== "playing" || this.paused) this.draw();
+  }
+
+  destroy() {
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("blur", this.handleBlur);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+  }
+
+  // En "gameover" no se toca el teclado: el modal necesita espacios y WASD.
+  private capturesKeys() {
+    return this.phase !== "gameover";
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (!this.capturesKeys() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!GAME_KEYS.has(e.code)) return;
+    e.preventDefault();
+
+    if (this.phase === "ready") {
+      if (e.code === "Space" && !e.repeat) this.start();
+      return;
+    }
+
+    // "playing"
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (e.repeat) return;
+      if (this.paused) this.resume();
+      else this.pause();
+      return;
+    }
+    const turn = TURN_KEYS[e.code];
+    if (!turn || this.paused || e.repeat) return;
+    this.queueTurn(turn);
+  };
+
+  private handleBlur = () => this.pause();
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pause();
+  };
+
+  // En pausa se dibuja sin actualizar: la serpiente no avanza.
+  private loop = (ts: number) => {
+    const dt =
+      this.lastTime === null
+        ? 0
+        : Math.min((ts - this.lastTime) / 1000, MAX_DT);
+    this.lastTime = ts;
+    if (!this.paused) this.update(dt);
+    this.draw();
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  };
+
+  // Solo se emite si cambia el snapshot: evita un render de React por frame.
+  private emit() {
+    const { phase, paused, score, level, lastSnapshot: last } = this;
+    if (
+      last &&
+      last.phase === phase &&
+      last.paused === paused &&
+      last.score === score &&
+      last.level === level
+    ) {
+      return;
+    }
+    this.lastSnapshot = { phase, paused, score, level };
+    this.onChange(this.lastSnapshot);
+  }
+
+  // En "ready" ya se ven la serpiente inicial y la primera fruta, sin avanzar.
+  private initGame(phase: SerpentinaPhase) {
+    this.snake = START_SNAKE.map((c) => ({ ...c }));
+    this.dir = START_DIR;
+    this.turns = [];
+    this.fruitsEaten = 0;
+    this.acc = 0;
+    this.score = 0;
+    this.level = 1;
+    this.paused = false;
+    this.phase = phase;
+    this.spawnFruit();
+  }
+
+  // Se valida contra el último giro en cola (o la dirección actual): sin 180° encubierto.
+  private queueTurn(next: Dir) {
+    if (this.turns.length >= MAX_QUEUED_TURNS) return;
+    const last =
+      this.turns.length > 0 ? this.turns[this.turns.length - 1] : this.dir;
+    if (next === last || next === OPPOSITE[last]) return;
+    this.turns.push(next);
+  }
+
+  // Acumulador de dt: con MAX_DT 50 ms y MIN_STEP 60 ms, como mucho un paso por frame.
+  private update(dt: number) {
+    if (this.phase !== "playing") return;
+    this.acc += dt;
+    const step = stepForLevel(this.level);
+    if (this.acc < step) return;
+    this.acc -= step;
+    this.advance();
+  }
+
+  private advance() {
+    const turn = this.turns.shift();
+    if (turn) this.dir = turn;
+
+    const head = this.snake[0];
+    const v = DIR_VECTORS[this.dir];
+    const next: Cell = { col: head.col + v.col, row: head.row + v.row };
+
+    // Muro
+    if (next.col < 0 || next.col >= COLS || next.row < 0 || next.row >= ROWS) {
+      this.phase = "gameover";
+      return;
+    }
+
+    const eats =
+      this.fruit !== null &&
+      next.col === this.fruit.col &&
+      next.row === this.fruit.row;
+
+    // Sin fruta, la cola se retira antes del choque: seguir la propia cola es válido.
+    if (!eats) this.snake.pop();
+
+    // Cuerpo
+    if (this.snake.some((c) => c.col === next.col && c.row === next.row)) {
+      this.phase = "gameover";
+      return;
+    }
+
+    this.snake.unshift(next);
+
+    if (eats) {
+      this.score += FRUIT_POINTS * this.level; // nivel antes de recalcular
+      this.fruitsEaten++;
+      this.level = Math.min(
+        1 + Math.floor(this.fruitsEaten / FRUITS_PER_LEVEL),
+        MAX_LEVEL,
+      );
+      this.spawnFruit();
+    }
+  }
+
+  // Casilla libre al azar entre la lista de libres; rejilla llena → gameover.
+  private spawnFruit() {
+    const occupied = new Set(this.snake.map((c) => c.row * COLS + c.col));
+    const free: number[] = [];
+    for (let i = 0; i < COLS * ROWS; i++) if (!occupied.has(i)) free.push(i);
+    if (free.length === 0) {
+      this.fruit = null;
+      this.phase = "gameover";
+      return;
+    }
+    const idx = free[randInt(free.length)];
+    this.fruit = {
+      col: idx % COLS,
+      row: Math.floor(idx / COLS),
+      kind: FRUIT_KINDS[randInt(FRUIT_KINDS.length)],
+    };
+  }
+
+  // Solo el mundo: score, nivel, pausa y game over los pinta React.
+  private draw() {
+    const ctx = this.ctx;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    // Fondo opaco del skin en cada frame (no clearRect).
+    ctx.fillStyle = this.palette.bg;
+    ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    drawGrid(ctx, this.palette);
+    if (this.fruit) drawFruit(ctx, this.palette, this.fruit);
+    drawSnake(ctx, this.palette, this.snake, this.dir);
+  }
+}
