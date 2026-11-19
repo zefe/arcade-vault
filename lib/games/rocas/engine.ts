@@ -1,7 +1,6 @@
 import {
   ASTEROID_PARTICLES_PER_SIZE,
   ASTEROID_SPAWN_SAFE_DIST,
-  COLOR_POWERUP,
   INITIAL_ASTEROIDS,
   LEVEL_ASTEROIDS_BASE,
   MAX_DPR,
@@ -20,6 +19,7 @@ import {
   rand,
 } from "./constants";
 import { Asteroid, Bullet, Particle, PowerUp, Ship } from "./entities";
+import type { RocasPalette } from "./skins";
 
 export type RocasPhase = "ready" | "playing" | "dead" | "gameover";
 
@@ -37,6 +37,7 @@ export class RocasEngine {
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: RocasSnapshot) => void;
+  private palette: RocasPalette;
 
   private keys: Record<string, boolean> = {};
   private justPressed: Record<string, boolean> = {};
@@ -60,7 +61,11 @@ export class RocasEngine {
   private lastTime: number | null = null;
   private lastSnapshot: RocasSnapshot | null = null;
 
-  constructor(canvas: HTMLCanvasElement, onChange: (s: RocasSnapshot) => void) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    onChange: (s: RocasSnapshot) => void,
+    palette: RocasPalette,
+  ) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("RocasEngine: canvas 2D no disponible");
     this.ctx = ctx;
@@ -68,6 +73,7 @@ export class RocasEngine {
     canvas.width = WORLD_WIDTH * this.dpr;
     canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
+    this.palette = palette;
     this.initGame("ready");
   }
 
@@ -109,6 +115,12 @@ export class RocasEngine {
   restart() {
     this.initGame("playing");
     this.emit();
+  }
+
+  // Cambia el skin en caliente: no toca el estado de la partida.
+  setSkin(palette: RocasPalette) {
+    this.palette = palette;
+    this.draw();
   }
 
   destroy() {
@@ -351,17 +363,19 @@ export class RocasEngine {
   private draw() {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    const palette = this.palette;
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    this.particles.forEach((p) => p.draw(ctx));
-    this.asteroids.forEach((a) => a.draw(ctx));
-    this.powerUps.forEach((p) => p.draw(ctx));
-    this.bullets.forEach((b) => b.draw(ctx));
+    this.particles.forEach((p) => p.draw(ctx, palette));
+    this.asteroids.forEach((a) => a.draw(ctx, palette));
+    this.powerUps.forEach((p) => p.draw(ctx, palette));
+    this.bullets.forEach((b) => b.draw(ctx, palette));
     // En "ready" la invencibilidad no corre: sin esto, el parpadeo la dejaría oculta.
-    this.ship.draw(ctx, this.phase !== "ready");
+    this.ship.draw(ctx, palette, this.phase !== "ready");
 
     if (this.ship.tripleShot > 0) {
-      ctx.fillStyle = COLOR_POWERUP;
+      ctx.fillStyle = palette.hudText;
       ctx.font = "15px monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";

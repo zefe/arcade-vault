@@ -33,6 +33,7 @@ import {
   drawPaddle,
 } from "./entities";
 import { LEVELS } from "./levels";
+import type { BloqueBusterPalette } from "./skins";
 
 export type BloqueBusterPhase = "ready" | "playing" | "gameover";
 
@@ -58,6 +59,7 @@ export class BloqueBusterEngine {
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: BloqueBusterSnapshot) => void;
+  private palette: BloqueBusterPalette;
 
   private paddle: Paddle = { x: 0, y: PADDLE_Y, w: PADDLE_W, h: PADDLE_H };
   private ball: Ball = {
@@ -87,6 +89,7 @@ export class BloqueBusterEngine {
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: BloqueBusterSnapshot) => void,
+    palette: BloqueBusterPalette,
   ) {
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
@@ -97,6 +100,7 @@ export class BloqueBusterEngine {
     canvas.width = WORLD_WIDTH * this.dpr;
     canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
+    this.palette = palette;
     this.initGame("ready");
   }
 
@@ -138,6 +142,12 @@ export class BloqueBusterEngine {
   restart() {
     this.initGame("playing");
     this.emit();
+  }
+
+  // Cambia el skin en caliente: no toca el estado de la partida.
+  setSkin(palette: BloqueBusterPalette) {
+    this.palette = palette;
+    this.draw();
   }
 
   destroy() {
@@ -347,13 +357,15 @@ export class BloqueBusterEngine {
 
   // Solo el mundo: score, vidas, nivel, pausa y game over los pinta React.
   private draw() {
-    const ctx = this.ctx;
+    const { ctx, palette } = this;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    for (const block of this.blocks) if (block.alive) drawBlock(ctx, block);
-    for (const exp of this.explosions) drawExplosion(ctx, exp);
-    drawPaddle(ctx, this.paddle);
-    drawBall(ctx, this.ball);
+    for (const block of this.blocks)
+      if (block.alive) drawBlock(ctx, block, palette);
+    for (const exp of this.explosions) drawExplosion(ctx, exp, palette);
+    drawPaddle(ctx, this.paddle, palette);
+    drawBall(ctx, this.ball, palette);
   }
 }

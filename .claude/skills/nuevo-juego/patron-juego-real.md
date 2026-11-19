@@ -7,6 +7,7 @@ Receta destilada de SPEC 04 (ROCAS) y SPEC 05 (leaderboard), con rutas del códi
 | Pieza       | Ruta                                        | Modelo en ROCAS                  |
 | ----------- | ------------------------------------------- | -------------------------------- |
 | Constantes  | `lib/games/<id>/constants.ts`               | `lib/games/rocas/constants.ts`   |
+| Skins       | `lib/games/<id>/skins.ts`                   | `lib/games/rocas/skins.ts`       |
 | Entidades   | `lib/games/<id>/entities.ts`                | `lib/games/rocas/entities.ts`    |
 | Motor       | `lib/games/<id>/engine.ts`                  | `lib/games/rocas/engine.ts`      |
 | Player      | `components/<id>-player.tsx`                | `components/rocas-player.tsx`    |
@@ -56,13 +57,23 @@ Reglas (ver `RocasEngine`):
 
 ## Entidades (`entities.ts`)
 
-- Clases con `update(dt, ...)` y `draw(ctx)`; `ctx` y el input llegan por parámetro.
+- Clases con `update(dt, ...)` y `draw(ctx, palette)`; `ctx`, la paleta y el input llegan por parámetro (sin colores globales).
 - Flag `dead` para retirarlas.
 
 ## Constantes (`constants.ts`)
 
-- Tamaño del mundo, `MAX_DT`, `MAX_DPR`, valores de balance con los números del original, colores y utilidades (`wrap`, `dist`, `rand`, `randInt` si aplican).
-- Colores con los mismos valores que los tokens de `app/globals.css`: cian `#00f5ff`, magenta `#ff006e`, amarillo `#f5ff00`, tinta `#e6e9ff`, verde `#00ff88`.
+- Tamaño del mundo, `MAX_DT`, `MAX_DPR`, valores de balance con los números del original y utilidades (`wrap`, `dist`, `rand`, `randInt` si aplican). **Sin colores ni `GLOW_BLUR`**: van en `skins.ts`.
+
+## Skins (`skins.ts`) — obligatorio
+
+Todo juego real nace con 3 skins (contrato en `lib/skins.ts`, modelo `lib/games/rocas/skins.ts`):
+
+- `export type <Id>Palette = BaseSkin & { ...claves de color }` y `export const SKINS: Record<SkinId, <Id>Palette>`.
+- `clasico` (por defecto): fondo `#000000`, colores planos arcade 80s, `glow: 0`, `scanlines: false`.
+- `neon`: tokens de `globals.css` (cian `#00f5ff`, magenta `#ff006e`, amarillo `#f5ff00`, tinta `#e6e9ff`, verde `#00ff88`), fondo `#0a0a0f`, `glow` ≈ 10.
+- `retro`: fósforo monocromo verde `#33ff66` (fondo `#020a04`) o ámbar `#ffb000` (fondo `#0a0600`), `glow` 4–8, `scanlines: true`; entidades por luminancia (100 % / ~70 % / ~45 %) y forma, no por tono. Fijar `--phosphor`/`--phosphor-rgb` en `.<id>-crt`. Con más de 3 tipos del mismo rol (p. ej. 7 colores de ladrillo), añadir a la paleta un patrón por tipo (`solid`/`outline`/`stripe`, modelo `lib/games/bloque-buster/skins.ts`).
+- Motor: recibe la paleta en el constructor, `setSkin(palette)` la cambia en caliente sin reiniciar; pinta `palette.bg` con `fillRect`; todo `fillStyle`/`strokeStyle`/`shadowColor` sale de la paleta y `shadowBlur` de `palette.glow`. `grep -nE "#[0-9a-fA-F]{3,8}\b|rgba?\(" engine.ts entities.ts` sin resultados.
+- Contraste (WCAG, vs `bg`): entidades jugables ≥ 3:1, textos en canvas ≥ 4.5:1; decoración por debajo de las entidades.
 
 ## Player (`components/<id>-player.tsx`)
 
@@ -72,12 +83,15 @@ Copiar la estructura de `RocasPlayer`:
 - Motor creado en `useEffect`, `mount()` y `destroy()` en el cleanup (aguanta React Strict Mode).
 - Táctil con `useSyncExternalStore` sobre `(hover: none) and (pointer: coarse)`, `false` en servidor (sin warnings de hidratación).
 - `blurFocused()` antes de cada acción de botón: si no, `Espacio` activaría el botón con foco.
-- Props a `PlayerShell`: `over = phase === "gameover"`, `controlsDisabled = phase === "ready"`, `crtClassName = "<id>-crt"`, `pauseHint = "PULSA P O REANUDAR PARA CONTINUAR"`.
+- `const [skin, setSkin] = useSkin(game.id)` (`lib/use-skin.ts`); motor creado con `SKINS[skinRef.current]` y un effect `[skin]` que llama `engine.setSkin(SKINS[skin])` (no recrea el motor).
+- Props a `PlayerShell`: `skin`, `onSkinChange={setSkin}`, `over = phase === "gameover"`, `controlsDisabled = phase === "ready"`, `crtClassName = "<id>-crt"`, `pauseHint = "PULSA P O REANUDAR PARA CONTINUAR"`.
 - Hijos: `<canvas>` y overlay de `ready` con tabla de controles (`<dl>` + `<kbd>`), `PULSA <TECLA>` y `REQUIERE TECLADO` en táctil.
 
 ## `PlayerShell`
 
-Props actuales: `game, score, lives, level, paused, over, controlsDisabled?, crtClassName?, pauseHint?, onTogglePause, onEnd, onRestart, children`.
+Props actuales: `game, score, lives?, lines?, level, paused, over, controlsDisabled?, crtClassName?, pauseHint?, skin?, onSkinChange?, onTogglePause, onEnd, onRestart, children`.
+
+- Con `skin` + `onSkinChange` pinta los chips CLÁSICO / NEÓN / RETRO en el bisel de la CRT (`.crt-bottom`) y añade `skin-<id>` a `.crt`; sin ellas, no hay selector.
 
 - El modal ya gestiona el guardado: `SIMULACIÓN: NO PUNTÚA` si `!game.ranked`, `SIN PUNTOS: NO SE GUARDA` si `score = 0`, envío con `submitScore` y `normalizeName` de `lib/scores.ts`, error y reintento.
 - Si el juego necesita otro HUD (líneas en vez de vidas), la spec debe ampliar las props de forma opcional y verificar que ROCAS y la simulación (`components/game-player.tsx`) no cambian.
@@ -107,7 +121,7 @@ Si el registro ya existe, la spec solo añade una entrada.
 ## CSS (`app/globals.css`)
 
 - `.crt-screen canvas` ya existe (`display: block; width: 100%; height: 100%`, sin `position` para que los pseudo-elementos CRT pinten encima).
-- `.<id>-crt`: ancho limitado por `100dvh` según la relación de aspecto del mundo. Modelo 4:3: `.rocas-crt { width: min(100%, max(320px, calc((100dvh - 282px) * 4 / 3 + 48px))) }`. Un mundo vertical (300×600) necesita otra fórmula.
+- `.<id>-crt`: ancho limitado por `100dvh` según la relación de aspecto del mundo. Modelo 4:3: `.rocas-crt { width: min(100%, max(320px, calc((100dvh - 290px) * 4 / 3 + 48px))) }` (290px incluye los chips de skin). Un mundo vertical (300×600) necesita otra fórmula.
 - Overlay de `ready`: modelo `.rocas-ready`, `.rocas-controls`, `.rocas-start`, `.rocas-touch` con su media query. Usar `/frontend-design` (instrucción de `CLAUDE.md`).
 
 ## Checklist de adaptación de un `game.js` de referencia

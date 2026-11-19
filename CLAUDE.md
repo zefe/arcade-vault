@@ -17,6 +17,8 @@ Routes (`app/`): `/` (landing, `components/home.tsx`), `/acerca`, `/juegos` (lib
 - `/spec <feature>`: guided spec designer (asks questions, builds section by section).
 - `/spec-impl <NN-spec-name>`: implements a spec whose state is Aprobado; creates branch `spec-NN-<name>`, goes step by step pausing for diff review.
 - `/nuevo-juego <reference folder | catalog id | description>`: specialization of `/spec` for new real games with leaderboard, following the SPEC 04/05 pattern (`.claude/skills/nuevo-juego/`: `SKILL.md`, `patron-juego-real.md`, `template.md`). Saves spec in Borrador; then `/spec-impl`.
+- New game flow: `game-planner` agent (pick the game) → `/nuevo-juego` (spec in Borrador) → approve → `/spec-impl`.
+- Game jam flow: `game-jam` agent + theme → specs in `specs/game-jam/<game-id>/` (Borrador) → review/approve → `/spec-impl`.
 - `/spec` and `/spec-impl` come from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (pinned in `skills-lock.json`; install: `npx skills@latest add Klerith/fernando-skills`).
 - Spec header: `> **Estado:**` (Borrador → Aprobado → Implementado), `Depende de`, `Fecha`, `Objetivo`. When done, set state to Implementado and update this file.
 
@@ -26,13 +28,32 @@ Specs: 01 MVP pantallas · 02 landing y acerca · 03 integración Supabase · 04
 
 Usa siempre /frontend-design para diseñar la interfaz de usuario.
 
+## Agents
+
+Subagents live in `.claude/agents/`; project memory in `.claude/agent-memory/<agent>/` (committed).
+
+- `game-planner` (`.claude/agents/game-planner.md`, model opus, `memory: project`): plans and decides which game fits the platform next. Invoke when asking for ideas, the next game, or to evaluate a proposal (e.g. "usa game-planner para sugerir el próximo juego").
+  - Reads `CLAUDE.md`, `references/implemented-games.md`, specs, `lib/games/`, `references/started-games/`, `patron-juego-real.md`; optional read-only SQL on `games`.
+  - Scores candidates on 7 criteria (1–5 each, /35: technical viability, leaderboard, variety, controls, neon aesthetics, `PlayerShell` fit, originality) + effort S/M/L. Prioritizes catalog games without engine (`ranked = false`).
+  - Proposes 3 candidates, picks 1, returns a ready `/nuevo-juego <...>` command.
+  - Memory: suggestions TODO `references/game-suggestions-todo.md` (IDs `S-NNN`, never deleted, only change state: pendiente / en curso / implementado / descartado) + `.claude/agent-memory/game-planner/MEMORY.md` (user preferences, rejections with reason, learned criteria). Never repeats pending or discarded suggestions.
+  - Never writes specs, code, migrations or DB data.
+- When a game moves to spec/implemented, update its entry in `references/game-suggestions-todo.md`.
+- `game-jam` (`.claude/agents/game-jam.md`, model opus, `memory: project`): given a theme, autonomously designs one original game (3 internal concepts scored /35, picks 1) and writes 2–3 complete specs in `Borrador` to `specs/game-jam/<game-id>/` (`01-juego-<id>.md` core playable + ranked insert; `02-<id>-<contenido>.md` progression; optional `03-<id>-<extra>.md`), same format as SPEC 06–08. Invoke e.g. "usa game-jam con el tema océano".
+  - Always a new `games` row; no questions (defaults recorded in Decisiones); read-only SQL; never writes code, `.sql` files or `references/`.
+  - Memory: `.claude/agent-memory/game-jam/MEMORY.md` (themes, ids, discarded concepts).
+- `skin-designer` (`.claude/agents/skin-designer.md`, model opus, `memory: project`): audits and implements the 3 mandatory skins per real game — `clasico` (default, flat 80s arcade, no glow), `neon` (current palette + glow), `retro` (monochrome green/amber phosphor + scanlines) — with dark-mode contrast checks (entities ≥ 3:1, text ≥ 4.5:1 vs bg). Invoke e.g. "usa skin-designer para revisar skins" (audit only: "solo auditar").
+  - Contract: `lib/skins.ts` (`SkinId`, `DEFAULT_SKIN`, `BaseSkin`), `lib/use-skin.ts` (`useSkin(gameId)`, localStorage `av_skin_<gameId>`), `lib/games/<id>/skins.ts` (`SKINS: Record<SkinId, Palette>`), engine `setSkin()` hot-swap, chips selector in `PlayerShell` (`skin`/`onSkinChange` props, `.crt.skin-<id>`).
+  - Never touches Supabase, scores or gameplay; updates `patron-juego-real.md`/`template.md` so new games ship with skins.
+  - Memory: `.claude/agent-memory/skin-designer/MEMORY.md` (audits, palettes, preferences).
+
 ## Tooling
 
 - Scripts: `npm run dev | build | start | lint | format | db:types`.
 - Prettier (`.prettierrc.json`: semi, double quotes, trailing commas) + ESLint 9 flat config (`next/core-web-vitals`, `next/typescript`, `eslint-config-prettier`).
 - Hook `.claude/hooks/format-lint.sh` (PostToolUse on Write/Edit): runs Prettier and `eslint --fix` on the edited file; ESLint errors block (exit 2) — fix them, don't bypass.
 - Supabase MCP configured in `.mcp.json` (project `qkbdukluudjmeslfezke`): use it to inspect tables, run SQL, apply migrations.
-- `references/` (ignored by ESLint, not app code): `templates/` original UI prototype (React UMD + Babel, `styles.css` ported to `globals.css`), `started-games/` reference games (`02-asteroids`, `03-tetris`, `04-arkanoid`) used as input for `/nuevo-juego`, `source-assets/` raw assets. Don't ship assets taken from commercial games (e.g. `snake-assets/` is reference only; SPEC 08 draws original vector fruit).
+- `references/` (ignored by ESLint, not app code): `templates/` original UI prototype (React UMD + Babel, `styles.css` ported to `globals.css`), `started-games/` reference games (`02-asteroids`, `03-tetris`, `04-arkanoid`) used as input for `/nuevo-juego`, `source-assets/` raw assets, `implemented-games.md` (real games summary), `game-suggestions-todo.md` (game-planner TODO). Don't ship assets taken from commercial games (e.g. `snake-assets/` is reference only; SPEC 08 draws original vector fruit).
 
 ## Stack notes
 

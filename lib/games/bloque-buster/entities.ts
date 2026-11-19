@@ -1,15 +1,11 @@
 import {
-  BLOCK_COLORS,
-  COLOR_BALL,
-  COLOR_BLOCK_BORDER,
-  COLOR_HIGHLIGHT,
-  COLOR_PADDLE,
   EXPLOSION_DURATION,
   EXPLOSION_GROW,
   EXPLOSION_STEPS,
-  GLOW_BLUR,
   HIGHLIGHT_HEIGHT,
+  STRIPE_HEIGHT,
 } from "./constants";
+import type { BloqueBusterPalette } from "./skins";
 
 export type BlockColor =
   "gray" | "red" | "yellow" | "cyan" | "magenta" | "hotpink" | "green";
@@ -48,43 +44,83 @@ export function collideAABB(a: Rect, b: Rect): boolean {
   );
 }
 
-// Paleta: rectángulo redondeado cyan con glow.
-export function drawPaddle(ctx: CanvasRenderingContext2D, p: Paddle) {
+// Paleta: rectángulo redondeado con glow del skin.
+export function drawPaddle(
+  ctx: CanvasRenderingContext2D,
+  p: Paddle,
+  palette: BloqueBusterPalette,
+) {
   ctx.save();
-  ctx.fillStyle = COLOR_PADDLE;
-  ctx.shadowColor = COLOR_PADDLE;
-  ctx.shadowBlur = GLOW_BLUR;
+  ctx.fillStyle = palette.paddle;
+  ctx.shadowColor = palette.paddle;
+  ctx.shadowBlur = palette.glow;
   ctx.beginPath();
   ctx.roundRect(p.x, p.y, p.w, p.h, p.h / 2);
   ctx.fill();
   ctx.restore();
 }
 
-// Pelota: círculo inscrito en su caja de 16×16, con glow.
-export function drawBall(ctx: CanvasRenderingContext2D, b: Ball) {
+// Pelota: círculo inscrito en su caja de 16×16, con glow del skin.
+export function drawBall(
+  ctx: CanvasRenderingContext2D,
+  b: Ball,
+  palette: BloqueBusterPalette,
+) {
   ctx.save();
-  ctx.fillStyle = COLOR_BALL;
-  ctx.shadowColor = COLOR_BALL;
-  ctx.shadowBlur = GLOW_BLUR;
+  ctx.fillStyle = palette.ball;
+  ctx.shadowColor = palette.ball;
+  ctx.shadowBlur = palette.glow;
   ctx.beginPath();
   ctx.arc(b.x + b.w / 2, b.y + b.h / 2, b.w / 2, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
-// Bloque: relleno de su color, borde interior oscuro de 1 px y brillo superior, sin glow.
-export function drawBlock(ctx: CanvasRenderingContext2D, b: Block) {
-  ctx.fillStyle = BLOCK_COLORS[b.color];
+// Bloque, sin glow. "solid": relleno, borde interior oscuro de 1 px y brillo
+// superior. "outline": contorno de 2 px sobre relleno tenue. "stripe": sólido
+// con franja central del color de fondo.
+export function drawBlock(
+  ctx: CanvasRenderingContext2D,
+  b: Block,
+  palette: BloqueBusterPalette,
+) {
+  const color = palette.blocks[b.color];
+  const pattern = palette.blockPatterns[b.color];
+  if (pattern === "outline") {
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = color;
+    ctx.fillRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+    ctx.restore();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+    return;
+  }
+  ctx.fillStyle = color;
   ctx.fillRect(b.x, b.y, b.w, b.h);
-  ctx.fillStyle = COLOR_HIGHLIGHT;
+  ctx.fillStyle = palette.highlight;
   ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, HIGHLIGHT_HEIGHT);
-  ctx.strokeStyle = COLOR_BLOCK_BORDER;
+  if (pattern === "stripe") {
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(
+      b.x + 4,
+      b.y + (b.h - STRIPE_HEIGHT) / 2,
+      b.w - 8,
+      STRIPE_HEIGHT,
+    );
+  }
+  ctx.strokeStyle = palette.blockBorder;
   ctx.lineWidth = 1;
   ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
 }
 
 // Explosión: 4 pasos en 150 ms; crece 2 px por lado y se desvanece, sin glow.
-export function drawExplosion(ctx: CanvasRenderingContext2D, e: Explosion) {
+export function drawExplosion(
+  ctx: CanvasRenderingContext2D,
+  e: Explosion,
+  palette: BloqueBusterPalette,
+) {
   const step = Math.min(
     Math.floor((e.elapsed / EXPLOSION_DURATION) * EXPLOSION_STEPS),
     EXPLOSION_STEPS - 1,
@@ -92,7 +128,7 @@ export function drawExplosion(ctx: CanvasRenderingContext2D, e: Explosion) {
   const grow = step * EXPLOSION_GROW;
   ctx.save();
   ctx.globalAlpha = (EXPLOSION_STEPS - step) / EXPLOSION_STEPS;
-  ctx.fillStyle = BLOCK_COLORS[e.color];
+  ctx.fillStyle = palette.blocks[e.color];
   ctx.fillRect(e.x - grow, e.y - grow, e.w + grow * 2, e.h + grow * 2);
   ctx.restore();
 }

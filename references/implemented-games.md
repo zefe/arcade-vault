@@ -16,6 +16,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Descripción:** Tu nave triangular flota en vacío absoluto. Dispara y rota para dividir rocas en fragmentos cada vez más pequeños. Recoge el power-up 3x para activar el disparo triple durante 5 segundos.
 - **Cover:** `cover-rocas` · **Orden:** 6
 - **Código:** `lib/games/rocas/`, `components/rocas-player.tsx`
+- **Skins:** clásico (default) · neón · retro ámbar `#ffb000` (`lib/games/rocas/skins.ts`)
 
 ## CAÍDA (`caida`)
 
@@ -30,6 +31,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Descripción:** Pilota una paleta de neón y rebota la pelota para pulverizar muros de bloques. Cinco niveles con patrones distintos: parrilla completa, pirámide, tablero de ajedrez, filas con huecos y marco con cruz. Cada nivel acelera la pelota y tienes 3 vidas para completarlos todos.
 - **Cover:** `cover-bricks` · **Orden:** 1
 - **Código:** `lib/games/bloque-buster/`, `components/bloque-buster-player.tsx`
+- **Skins:** clásico (default) · neón · retro verde `#33ff66`, ladrillos por luminancia + patrón sólido/contorno/franja (`lib/games/bloque-buster/skins.ts`)
 
 ## En curso
 
