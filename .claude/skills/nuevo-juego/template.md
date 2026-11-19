@@ -112,13 +112,13 @@ Teclas:
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para overlays y estilos.
 2. [si registro] Crear `components/game-players.ts` con `rocas` y usarlo en `app/juegos/[id]/jugar/page.tsx`. Verificar: `/juegos/rocas/jugar` y `/juegos/<simulación>/jugar` funcionan igual.
 3. [si HUD distinto] Ampliar `PlayerShell` con <props opcionales>. Verificar: ROCAS y la simulación sin cambios.
-4. Crear `lib/games/<id>/constants.ts` con tamaños, valores de juego, colores y utilidades.
-5. Crear `lib/games/<id>/entities.ts` con <clases>. Cada `draw` recibe `ctx`.
+4. Crear `lib/games/<id>/constants.ts` con tamaños, valores de juego y utilidades (sin colores), y `lib/games/<id>/skins.ts` con `<Id>Palette` y `SKINS` (`clasico`, `neon`, `retro` <verde|ámbar>).
+5. Crear `lib/games/<id>/entities.ts` con <clases>. Cada `draw` recibe `ctx` y la paleta.
 6. Crear `lib/games/<id>/engine.ts` con estado, `update`, colisiones, <niveles> y `end()`, sin dibujo ni loop. Quitar el reinicio por tecla de `gameover`.
 7. Añadir el dibujo del mundo y efectos de juego, sin HUD ni overlay de game over. Configurar el backing store con `dpr`.
 8. Añadir el loop y los listeners: `mount()`, `destroy()`, `pause()`, `resume()`; `onChange` solo si cambia el snapshot; en pausa se dibuja sin `update`; al pausar se limpian `keys` y `justPressed`; `blur` y `visibilitychange` pausan.
 9. Añadir la gestión de teclas por fase, con `preventDefault` solo fuera de `gameover`.
-10. Crear `components/<id>-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect` y `destroy()` en el cleanup.
+10. Crear `components/<id>-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect` y `destroy()` en el cleanup; `useSkin(game.id)`, `engine.setSkin()` al cambiar y props `skin`/`onSkinChange`.
 11. Añadir el overlay de `ready` con controles, `PULSA <TECLA>` y `REQUIERE TECLADO` en táctil (`useSyncExternalStore`).
 12. Conectar los botones: PAUSA y FIN desactivados en `ready`, `blur()` tras cada click, `pauseHint` `PULSA P O REANUDAR PARA CONTINUAR`.
 13. Seleccionar `<Id>Player` para `game.id === "<id>"` <en el registro | en la página de jugar>.
@@ -150,6 +150,14 @@ Teclas:
 - [ ] <Campos> del HUD React coinciden con la partida.
 - [ ] El canvas no dibuja score ni el resto del HUD.
 - [ ] <Colores por entidad> y líneas nítidas en HiDPI.
+
+**Skins**
+
+- [ ] El selector muestra CLÁSICO / NEÓN / RETRO y por defecto está CLÁSICO.
+- [ ] Cambiar de skin en mitad de partida no la reinicia ni cambia puntuación, vidas ni nivel.
+- [ ] El skin elegido persiste por juego al recargar (`av_skin_<id>`).
+- [ ] En los 3 skins: entidades ≥ 3:1 y textos en canvas ≥ 4.5:1 frente a `bg`; RETRO distingue entidades por luminancia y forma.
+- [ ] `engine.ts` y `entities.ts` no contienen colores literales.
 - [ ] A 1440×900, la pantalla CRT completa se ve sin hacer scroll.
 - [ ] Las teclas de juego no desplazan la página durante la partida.
 

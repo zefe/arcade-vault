@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import type { Game } from "@/lib/games";
+import { SKIN_IDS, SKIN_LABELS, type SkinId } from "@/lib/skins";
 import { normalizeName, submitScore } from "@/lib/scores";
 import { useUser } from "@/lib/user-context";
 
@@ -19,6 +20,8 @@ type PlayerShellProps = {
   controlsDisabled?: boolean; // desactiva PAUSA y FIN
   crtClassName?: string; // clase extra para `.crt`
   pauseHint?: string; // texto bajo EN PAUSA
+  skin?: SkinId; // con onSkinChange, pinta el selector de skin
+  onSkinChange?: (s: SkinId) => void;
   onTogglePause: () => void;
   onEnd: () => void;
   onRestart: () => void;
@@ -36,6 +39,8 @@ export function PlayerShell({
   controlsDisabled = false,
   crtClassName,
   pauseHint = "PULSA REANUDAR PARA CONTINUAR",
+  skin,
+  onSkinChange,
   onTogglePause,
   onEnd,
   onRestart,
@@ -47,6 +52,9 @@ export function PlayerShell({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const name = nameInput ?? user?.name ?? "INVITADO";
   const saving = saveStatus === "saving";
+  const crtClass = ["crt", crtClassName, skin && `skin-${skin}`]
+    .filter(Boolean)
+    .join(" ");
 
   const restart = () => {
     setSaveStatus("idle");
@@ -111,7 +119,7 @@ export function PlayerShell({
         </div>
       </div>
 
-      <div className={crtClassName ? `crt ${crtClassName}` : "crt"}>
+      <div className={crtClass}>
         <div className="crt-screen">
           {children}
           {paused && (
@@ -140,8 +148,28 @@ export function PlayerShell({
         </div>
         <div className="crt-bottom">
           <span className="led">SEÑAL OK</span>
-          <span>{game.title} · CRT-83 · 60 HZ</span>
-          <span>CARGA · 1MB</span>
+          <span className="crt-model">{game.title} · CRT-83 · 60 HZ</span>
+          {skin && onSkinChange ? (
+            <div className="skin-picker" role="group" aria-label="Skin">
+              {SKIN_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`skin-chip skin-chip-${id}`}
+                  aria-pressed={skin === id}
+                  onClick={(e) => {
+                    // Sin blur, Espacio volvería a pulsar el chip en vez de jugar.
+                    e.currentTarget.blur();
+                    onSkinChange(id);
+                  }}
+                >
+                  {SKIN_LABELS[id]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span>CARGA · 1MB</span>
+          )}
         </div>
       </div>
 

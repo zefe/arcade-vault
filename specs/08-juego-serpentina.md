@@ -26,9 +26,9 @@ El registro `components/game-players.ts` y el HUD opcional de `PlayerShell` ya e
   - Chocar con un muro o con el propio cuerpo termina la partida.
   - Llenar la rejilla termina la partida.
 - Movimiento por pasos con acumulador de `dt`, independiente de los FPS.
-- Paleta neón de la plataforma con formas vectoriales y 4 frutas originales, sin imágenes.
+- Formas vectoriales y 4 frutas originales, sin imágenes, con los 3 skins obligatorios (`clasico` por defecto, `neon`, `retro` fósforo verde) seleccionables en caliente desde `PlayerShell` y persistidos por juego (ver Skins en Modelo de datos).
 - Mundo lógico 800×600 dentro de `.crt-screen`, escalado y nítido en HiDPI.
-- HUD React de la plataforma con puntuación y nivel, sin Vidas. `PlayerShell` no cambia.
+- HUD React de la plataforma con puntuación y nivel, sin Vidas. `PlayerShell` no cambia: ya acepta `skin` y `onSkinChange`.
 - Overlay inicial con controles, `PULSA ESPACIO` y `REQUIERE TECLADO` en táctil.
 - PAUSA real con botón, `P` o `Esc`, y auto-pausa al perder foco o cambiar de pestaña.
 - FIN, chocar y llenar la rejilla abren el modal FIN DEL JUEGO existente.
@@ -78,6 +78,7 @@ export class SerpentinaEngine {
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: SerpentinaSnapshot) => void,
+    palette: SerpentinaPalette, // SKINS[skin] de lib/games/serpentina/skins.ts
   );
   mount(): void; // registra listeners, arranca el loop y queda en "ready"
   start(): void; // "ready" → "playing"
@@ -86,6 +87,7 @@ export class SerpentinaEngine {
   end(): void; // cualquier fase → "gameover"
   restart(): void; // partida nueva, directamente en "playing"
   destroy(): void; // quita listeners y cancela el RAF
+  setSkin(palette: SerpentinaPalette): void; // cambia la paleta en caliente y repinta; no reinicia ni toca el estado
 }
 ```
 
@@ -97,7 +99,7 @@ export type Dir = "up" | "down" | "left" | "right";
 export type FruitKind = "apple" | "cherry" | "lemon" | "grape";
 export type Fruit = Cell & { kind: FruitKind };
 // snake: Cell[] con la cabeza en el índice 0
-// drawGrid, drawSnake, drawFruit(ctx, …)
+// drawGrid, drawSnake, drawFruit(ctx, palette, …): la paleta llega por parámetro, sin globals
 ```
 
 Registro (`components/game-players.ts`):
@@ -133,15 +135,88 @@ Convenciones:
 - Cola de giros: máximo 2. Un giro se añade si no es igual ni opuesto al último giro en cola, o a la dirección actual si la cola está vacía. Con la cola llena se ignora.
 - Fruta: casilla libre aleatoria y tipo aleatorio entre los 4. Si no hay casillas libres, `gameover`.
 - En `ready` se ven la rejilla, la serpiente inicial y la primera fruta, sin avanzar.
-- Colores en `lib/games/serpentina/constants.ts`, con los valores de los tokens de `globals.css`:
-  - Cuerpo: `#00ff88`, con 2 px de margen dentro de la casilla.
-  - Cabeza: `#00ff88` con glow y dos ojos `#e6e9ff` orientados según la dirección.
-  - Rejilla: puntos en las intersecciones con `rgba(230,233,255,0.08)`.
-  - Borde del mundo: línea de 2 px `#00f5ff`.
-  - Manzana `#ff006e` con hoja `#00ff88`; cereza: dos círculos `#ff006e` con rabito `#00ff88`; limón: elipse `#f5ff00`; uva: racimo de 6 círculos `#00f5ff`.
-- Glow (`shadowBlur`) solo en la cabeza y la fruta.
+- Colores: ninguno en `constants.ts`, `engine.ts` ni `entities.ts`; todos salen de la paleta del skin activo (ver Skins). `constants.ts` solo guarda números.
+- Formas (iguales en los 3 skins):
+  - Fondo: `fillRect` del mundo con `palette.bg` en cada frame (no `clearRect`).
+  - Cuerpo: cuadrado `palette.body` con 2 px de margen dentro de la casilla.
+  - Cabeza: cuadrado `palette.head` con dos ojos `palette.eye` orientados según la dirección.
+  - Rejilla: puntos en las intersecciones con `palette.grid`.
+  - Borde del mundo: línea de 2 px `palette.border`.
+  - Manzana: círculo `palette.apple` con hoja `palette.appleLeaf`; cereza: dos círculos `palette.cherry` con rabito `palette.cherryStem`; limón: elipse `palette.lemon`; uva: racimo de 6 círculos `palette.grape`.
+- Glow (`shadowBlur = palette.glow`, `shadowColor` = color de la entidad) solo en la cabeza y la fruta; con `glow = 0` no se activa `shadow*`.
 - El canvas no dibuja score, nivel, pausa ni game over.
 - Backing store `800 × dpr` por `600 × dpr`, con `dpr` limitado a 2.
+
+Skins (`lib/games/serpentina/skins.ts`), sobre el contrato de `lib/skins.ts` (`SkinId`, `DEFAULT_SKIN = "clasico"`, `BaseSkin`) y `lib/use-skin.ts` (`useSkin(gameId)`, localStorage `av_skin_serpentina`), igual que `lib/games/rocas/skins.ts`:
+
+```ts
+import type { BaseSkin, SkinId } from "@/lib/skins";
+
+export type SerpentinaPalette = BaseSkin & {
+  grid: string; // puntos de la rejilla
+  border: string; // marco del mundo, 2 px
+  head: string;
+  body: string;
+  eye: string; // ojos de la cabeza
+  apple: string;
+  appleLeaf: string;
+  cherry: string;
+  cherryStem: string;
+  lemon: string;
+  grape: string;
+};
+
+export const SKINS: Record<SkinId, SerpentinaPalette>;
+```
+
+| Clave        | CLÁSICO (`clasico`, defecto) | NEÓN (`neon`)            | RETRO (`retro`, fósforo verde) |
+| ------------ | ---------------------------- | ------------------------ | ------------------------------ |
+| `bg`         | `#000000`                    | `#0a0a0f` (`--bg`)       | `#020a04`                      |
+| `ink`        | `#f5f0dc`                    | `#e6e9ff` (`--ink`)      | `#33ff66`                      |
+| `glow`       | `0`                          | `10`                     | `6`                            |
+| `scanlines`  | `false`                      | `false`                  | `true`                         |
+| `grid`       | `rgba(255,255,255,0.12)`     | `rgba(230,233,255,0.08)` | `rgba(51,255,102,0.14)`        |
+| `border`     | `#5a5a5a`                    | `#00f5ff` (`--cyan`)     | `#177330` (45 %)               |
+| `head`       | `#9be564`                    | `#00ff88` (`--green`)    | `#33ff66` (100 %)              |
+| `body`       | `#3fae3f`                    | `#00ff88` (`--green`)    | `#24b347` (70 %)               |
+| `eye`        | `#000000`                    | `#0a0a0f` (`--bg`)       | `#020a04` (`bg`)               |
+| `apple`      | `#e8392b`                    | `#ff006e` (`--magenta`)  | `#ccffd9` (núcleo caliente)    |
+| `appleLeaf`  | `#3fae3f`                    | `#00ff88` (`--green`)    | `#177330` (45 %)               |
+| `cherry`     | `#d81e5b`                    | `#ff006e` (`--magenta`)  | `#ccffd9` (núcleo caliente)    |
+| `cherryStem` | `#a0703c`                    | `#00ff88` (`--green`)    | `#177330` (45 %)               |
+| `lemon`      | `#f8d838`                    | `#f5ff00` (`--yellow`)   | `#33ff66` (100 %)              |
+| `grape`      | `#8a63ff`                    | `#00f5ff` (`--cyan`)     | `#33ff66` (100 %)              |
+
+- CLÁSICO: arcade 80s plano, sin glow ni gradientes; cabeza más clara que el cuerpo.
+- NEÓN: colores originales de la plataforma con glow 10 en cabeza y fruta. Único ajuste: `eye` pasa de `#e6e9ff` a `#0a0a0f` (contraste con la cabeza de 1,12 a 14,73).
+- RETRO: monocromo de fósforo verde (`--phosphor: #33ff66` en `.serpentina-crt`); scanlines y tinte los pinta `.crt.skin-retro`, no el canvas. Cabeza 100 %, cuerpo 70 %, decoración 45 %, frutas en núcleo caliente o 100 %: se distinguen por luminancia y forma (casilla cuadrada con ojos frente a círculos, elipse o racimo), nunca solo por tono.
+- `ink` lo exige `BaseSkin`; el canvas no dibuja texto, pero queda listo para overlays futuros.
+
+Contraste en modo oscuro (WCAG, vs `bg`; entidades ≥ 3:1, texto ≥ 4.5:1, decoración por debajo de las entidades):
+
+| Elemento              | CLÁSICO | NEÓN  | RETRO |
+| --------------------- | ------- | ----- | ----- |
+| `ink`                 | 18,38   | 16,43 | 14,92 |
+| `head`                | 13,79   | 14,73 | 14,92 |
+| `body`                | 7,34    | 14,73 | 7,27  |
+| `apple`               | 5,05    | 5,15  | 18,01 |
+| `appleLeaf`           | 7,34    | 14,73 | 3,37  |
+| `cherry`              | 4,26    | 5,15  | 18,01 |
+| `cherryStem`          | 4,88    | 14,73 | 3,37  |
+| `lemon`               | 14,87   | 18,05 | 14,92 |
+| `grape`               | 5,31    | 14,58 | 14,92 |
+| `border` (decoración) | 3,04    | 14,58 | 3,37  |
+| `grid` (decoración)   | 1,27    | 1,16  | 1,32  |
+| `eye` vs `head`       | 13,79   | 14,73 | 14,92 |
+| `head` vs `body`      | 1,88    | 1,00  | 2,05  |
+
+Mínimo de entidad por skin: CLÁSICO 4,26 (`cherry`), NEÓN 5,15 (`apple`, `cherry`), RETRO 3,37 (`appleLeaf`, `cherryStem`, detalles de fruta). En NEÓN cabeza y cuerpo comparten color: la cabeza se distingue por glow y ojos. Sin flashes ni rellenos claros a pantalla completa.
+
+Player (`components/serpentina-player.tsx`), como `components/rocas-player.tsx`:
+
+- `const [skin, setSkin] = useSkin(game.id)` y `skinRef` con el skin vigente.
+- El engine se crea una sola vez con `SKINS[skinRef.current]`; un `useEffect` aparte con `[skin]` llama `engineRef.current?.setSkin(SKINS[skin])` sin recrear el motor.
+- Pasa `skin` y `onSkinChange={setSkin}` a `PlayerShell` (chips CLÁSICO / NEÓN / RETRO en el bisel, `.crt.skin-<id>`).
 
 Teclas:
 
@@ -155,20 +230,24 @@ Teclas:
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para overlays y estilos.
-2. Crear `lib/games/serpentina/constants.ts` con tamaños, valores de juego, colores, `MAX_DT`, `MAX_DPR`, `stepForLevel` y `randInt`.
-3. Crear `lib/games/serpentina/entities.ts` con los tipos y las funciones de dibujo de rejilla, serpiente y las 4 frutas. Cada `draw` recibe `ctx`.
-4. Crear `lib/games/serpentina/engine.ts` con estado, cola de giros, paso, crecimiento, generación de fruta, choques, niveles, fin de partida y `end()`, sin dibujo ni loop. Sin reinicio por tecla en `gameover`.
-5. Añadir el dibujo de rejilla, borde, fruta y serpiente, sin HUD ni overlays. Configurar el backing store con `dpr`.
-6. Añadir el loop y los listeners: `mount()`, `destroy()`, `pause()`, `resume()`; `onChange` solo si cambia el snapshot; en pausa se dibuja sin `update`; al pausar se vacía la cola de giros; `blur` y `visibilitychange` pausan.
-7. Añadir la gestión de teclas por fase con `preventDefault` solo fuera de `gameover`; los giros ignoran `e.repeat`.
-8. Crear `components/serpentina-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect`, `destroy()` en el cleanup y `score` y `level` en el HUD, sin `lives`.
-9. Añadir el overlay de `ready` con controles, `PULSA ESPACIO` y `REQUIERE TECLADO` en táctil (`useSyncExternalStore`).
-10. Conectar los botones: PAUSA y FIN desactivados en `ready`, `blur()` tras cada click, `pauseHint` `PULSA P O REANUDAR PARA CONTINUAR`.
-11. Añadir `serpentina: SerpentinaPlayer` a `GAME_PLAYERS`.
-12. Añadir a `app/globals.css` `.serpentina-crt` (misma fórmula 4:3 que `.rocas-crt`) y los estilos `.serpentina-ready`, `.serpentina-controls`, `.serpentina-start` y `.serpentina-touch`.
-13. Crear la migración `0004_juego_serpentina.sql`, aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
-14. Actualizar `CLAUDE.md` (Stack notes): juegos reales `rocas`, `caida`, `bloque-buster` y `serpentina`.
-15. Pasar `npm run lint` y `npm run build`; corregir errores y warnings.
+2. Crear `lib/games/serpentina/constants.ts` con tamaños, valores de juego (sin colores), `MAX_DT`, `MAX_DPR`, `stepForLevel` y `randInt`.
+3. Crear `lib/games/serpentina/skins.ts` con `SerpentinaPalette` y `SKINS` según la tabla de Skins.
+4. Crear `lib/games/serpentina/entities.ts` con los tipos y las funciones de dibujo de rejilla, serpiente y las 4 frutas. Cada `draw` recibe `ctx` y `palette`.
+5. Crear `lib/games/serpentina/engine.ts` (constructor con `palette`) con estado, cola de giros, paso, crecimiento, generación de fruta, choques, niveles, fin de partida y `end()`, sin dibujo ni loop. Sin reinicio por tecla en `gameover`.
+6. Añadir el dibujo de fondo (`palette.bg`), rejilla, borde, fruta y serpiente, sin HUD ni overlays y sin colores literales. Configurar el backing store con `dpr`.
+7. Añadir `setSkin(palette)`: sustituye la paleta y repinta si está en `ready`, en pausa o en `gameover`, sin tocar el estado de la partida.
+8. Añadir el loop y los listeners: `mount()`, `destroy()`, `pause()`, `resume()`; `onChange` solo si cambia el snapshot; en pausa se dibuja sin `update`; al pausar se vacía la cola de giros; `blur` y `visibilitychange` pausan.
+9. Añadir la gestión de teclas por fase con `preventDefault` solo fuera de `gameover`; los giros ignoran `e.repeat`.
+10. Crear `components/serpentina-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect`, `destroy()` en el cleanup y `score` y `level` en el HUD, sin `lives`.
+11. Conectar skins en el player: `useSkin(game.id)`, `skinRef`, engine creado con `SKINS[skinRef.current]`, effect `[skin]` → `setSkin`, y `skin` / `onSkinChange={setSkin}` en `PlayerShell`.
+12. Añadir el overlay de `ready` con controles, `PULSA ESPACIO` y `REQUIERE TECLADO` en táctil (`useSyncExternalStore`).
+13. Conectar los botones: PAUSA y FIN desactivados en `ready`, `blur()` tras cada click, `pauseHint` `PULSA P O REANUDAR PARA CONTINUAR`.
+14. Añadir `serpentina: SerpentinaPlayer` a `GAME_PLAYERS`.
+15. Añadir a `app/globals.css` `.serpentina-crt` (misma fórmula 4:3 que `.rocas-crt`, con `100dvh - 290px` por los chips de skin, y `--phosphor: #33ff66` / `--phosphor-rgb: 51, 255, 102`) y los estilos `.serpentina-ready`, `.serpentina-controls`, `.serpentina-start` y `.serpentina-touch`.
+16. Crear la migración `0004_juego_serpentina.sql`, aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
+17. Actualizar `CLAUDE.md` (Stack notes): juegos reales `rocas`, `caida`, `bloque-buster` y `serpentina`.
+18. Comprobar que `grep -nE "#[0-9a-fA-F]{3,8}\b|rgba?\(" lib/games/serpentina/{constants,engine,entities}.ts` no devuelve nada.
+19. Pasar `npm run lint` y `npm run build`; corregir errores y warnings.
 
 ## Criterios de aceptación
 
@@ -204,11 +283,24 @@ Teclas:
 
 - [ ] El HUD React muestra Jugador, Puntuación y Nivel, sin Vidas ni Líneas, y coincide con la partida.
 - [ ] El canvas no dibuja score ni nivel.
-- [ ] Serpiente, rejilla, borde y frutas usan los colores de Convenciones y las líneas son nítidas en HiDPI.
+- [ ] Serpiente, rejilla, borde y frutas usan las formas de Convenciones y los colores del skin activo, y las líneas son nítidas en HiDPI.
 - [ ] Los ojos de la cabeza miran en la dirección de avance.
 - [ ] El canvas no carga ninguna imagen ni audio (pestaña Network).
 - [ ] A 1440×900, la pantalla CRT completa se ve sin hacer scroll.
 - [ ] Las teclas de juego no desplazan la página durante la partida.
+
+**Skins**
+
+- [ ] La primera visita (sin `av_skin_serpentina`) usa CLÁSICO: fondo negro, colores planos y sin glow.
+- [ ] Los chips CLÁSICO / NEÓN / RETRO del bisel cambian el skin en mitad de la partida sin reiniciarla: misma puntuación, nivel, posición y dirección.
+- [ ] Cambiar de skin en pausa o con el modal FIN DEL JUEGO abierto repinta el canvas sin reanudar ni cerrar el modal.
+- [ ] Tras pulsar un chip, `Espacio`, flechas y WASD siguen llegando al juego (el chip no retiene el foco).
+- [ ] Recargar conserva el skin elegido en `serpentina` y no afecta al de otros juegos.
+- [ ] NEÓN se ve con los colores de la tabla de Skins y glow solo en cabeza y fruta; los ojos se distinguen sobre la cabeza.
+- [ ] RETRO se ve monocromo verde con scanlines; cabeza, cuerpo, frutas y borde se distinguen por luminancia y forma.
+- [ ] En los 3 skins cada entidad tiene contraste ≥ 3:1 y `ink` ≥ 4.5:1 sobre `bg` (tabla de contraste), y rejilla y borde no compiten con la serpiente.
+- [ ] `engine.ts`, `entities.ts` y `constants.ts` no contienen colores literales.
+- [ ] Cambiar de skin no altera la puntuación guardada en `scores`.
 
 **Pausa**
 
@@ -282,6 +374,10 @@ Teclas:
 - **Sí:** una sola vida. `PlayerShell` omite Vidas con `lives` sin definir.
 - **Sí:** `PlayerShell` sin cambios. Puntuación y nivel bastan.
 - **No:** campo Longitud en el HUD. La longitud se deduce de las frutas y obligaría a ampliar `PlayerShell`.
+- **Sí:** 3 skins (`clasico` por defecto, `neon`, `retro`) con `setSkin()` en caliente. Regla de skin-designer para todo juego real; mismo contrato que ROCAS.
+- **Sí:** RETRO en fósforo verde. Encaja con la serpiente y el `color = 'green'` de la ficha; ROCAS usa ámbar.
+- **Sí:** ojos `#0a0a0f` en NEÓN (antes `#e6e9ff`). Con `#e6e9ff` sobre `#00ff88` el contraste era 1,12 y no se leía la dirección.
+- **No:** scanlines dibujadas en el canvas. Las pinta `.crt.skin-retro` en CSS.
 - **Sí:** glow solo en cabeza y fruta. Hasta 768 segmentos con `shadowBlur` bajarían los FPS.
 - **Sí:** sin sonido. Audio y su control de volumen merecen spec propia.
 - **Sí:** aviso `REQUIERE TECLADO` en táctil, sin bloquear. Una tablet puede tener teclado.
@@ -301,6 +397,7 @@ Teclas:
 | Un frame largo salta casillas y atraviesa un muro o el cuerpo           | Tope de `dt` de 50 ms y `MIN_STEP` de 60 ms: como mucho un paso por frame.   |
 | Dos giros en el mismo paso producen un 180° encubierto                  | Cada giro se valida contra el último en cola, no contra la dirección actual. |
 | Buscar casilla libre por reintentos se alarga con la rejilla casi llena | Elegir al azar entre la lista de casillas libres.                            |
+| `setSkin` reinicia o altera la partida                                  | Solo sustituye `this.palette` y repinta; criterio propio de skins.           |
 | `TOP JUGADORES` mezcla marcas de juegos con escalas distintas           | Riesgo aceptado; se revisa en una spec propia.                               |
 
 ## Lo que **no** entra en esta spec
