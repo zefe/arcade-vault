@@ -1,5 +1,3 @@
-import type { BlockColor } from "./entities";
-
 // Mundo lógico: canvas 800×600 de game.js
 export const WORLD_WIDTH = 800;
 export const WORLD_HEIGHT = 600;
@@ -36,22 +34,9 @@ export const EXPLOSION_DURATION = 0.15; // segundos
 export const EXPLOSION_STEPS = 4;
 export const EXPLOSION_GROW = 2; // px por lado en cada paso
 
-// Colores: mismos valores que los tokens de globals.css, más 3 derivados
-export const COLOR_PADDLE = "#00f5ff"; // --cyan
-export const COLOR_BALL = "#e6e9ff"; // --ink
-export const BLOCK_COLORS: Record<BlockColor, string> = {
-  cyan: "#00f5ff", // --cyan
-  yellow: "#f5ff00", // --yellow
-  magenta: "#ff006e", // --magenta
-  green: "#00ff88", // --green
-  red: "#ff3b3b", // rojo neón
-  hotpink: "#ff4fd8", // rosa neón
-  gray: "#8a8fb8", // gris azulado
-};
-export const COLOR_BLOCK_BORDER = "rgba(10, 10, 15, 0.6)"; // borde interior oscuro
-export const COLOR_HIGHLIGHT = "rgba(255,255,255,0.12)";
+// Colores y glow: en skins.ts (SKINS[skinId]); aquí solo medidas.
 export const HIGHLIGHT_HEIGHT = 4; // px de brillo superior en cada bloque
-export const GLOW_BLUR = 12; // solo paleta y pelota
+export const STRIPE_HEIGHT = 4; // px de franja central (patrón "stripe")
 
 export const clamp = (v: number, min: number, max: number) =>
   Math.min(max, Math.max(min, v));

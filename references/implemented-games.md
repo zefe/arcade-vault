@@ -31,6 +31,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Descripción:** Pilota una paleta de neón y rebota la pelota para pulverizar muros de bloques. Cinco niveles con patrones distintos: parrilla completa, pirámide, tablero de ajedrez, filas con huecos y marco con cruz. Cada nivel acelera la pelota y tienes 3 vidas para completarlos todos.
 - **Cover:** `cover-bricks` · **Orden:** 1
 - **Código:** `lib/games/bloque-buster/`, `components/bloque-buster-player.tsx`
+- **Skins:** clásico (default) · neón · retro verde `#33ff66`, ladrillos por luminancia + patrón sólido/contorno/franja (`lib/games/bloque-buster/skins.ts`)
 
 ## En curso
 

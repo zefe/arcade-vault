@@ -1463,9 +1463,11 @@ a {
   }
 }
 
-/* BLOQUE BUSTER: mundo 800×600 (4:3), misma fórmula que ROCAS */
+/* BLOQUE BUSTER: mundo 800×600 (4:3), misma fórmula que ROCAS (290px: con chips de skin) */
 .bloque-buster-crt {
-  width: min(100%, max(320px, calc((100dvh - 282px) * 4 / 3 + 48px)));
+  --phosphor: #33ff66;
+  --phosphor-rgb: 51, 255, 102;
+  width: min(100%, max(320px, calc((100dvh - 290px) * 4 / 3 + 48px)));
   margin-inline: auto;
 }
 

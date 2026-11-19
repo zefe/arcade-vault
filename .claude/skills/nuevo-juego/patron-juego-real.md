@@ -71,7 +71,7 @@ Todo juego real nace con 3 skins (contrato en `lib/skins.ts`, modelo `lib/games/
 - `export type <Id>Palette = BaseSkin & { ...claves de color }` y `export const SKINS: Record<SkinId, <Id>Palette>`.
 - `clasico` (por defecto): fondo `#000000`, colores planos arcade 80s, `glow: 0`, `scanlines: false`.
 - `neon`: tokens de `globals.css` (cian `#00f5ff`, magenta `#ff006e`, amarillo `#f5ff00`, tinta `#e6e9ff`, verde `#00ff88`), fondo `#0a0a0f`, `glow` ≈ 10.
-- `retro`: fósforo monocromo verde `#33ff66` (fondo `#020a04`) o ámbar `#ffb000` (fondo `#0a0600`), `glow` 4–8, `scanlines: true`; entidades por luminancia (100 % / ~70 % / ~45 %) y forma, no por tono. Fijar `--phosphor`/`--phosphor-rgb` en `.<id>-crt`.
+- `retro`: fósforo monocromo verde `#33ff66` (fondo `#020a04`) o ámbar `#ffb000` (fondo `#0a0600`), `glow` 4–8, `scanlines: true`; entidades por luminancia (100 % / ~70 % / ~45 %) y forma, no por tono. Fijar `--phosphor`/`--phosphor-rgb` en `.<id>-crt`. Con más de 3 tipos del mismo rol (p. ej. 7 colores de ladrillo), añadir a la paleta un patrón por tipo (`solid`/`outline`/`stripe`, modelo `lib/games/bloque-buster/skins.ts`).
 - Motor: recibe la paleta en el constructor, `setSkin(palette)` la cambia en caliente sin reiniciar; pinta `palette.bg` con `fillRect`; todo `fillStyle`/`strokeStyle`/`shadowColor` sale de la paleta y `shadowBlur` de `palette.glow`. `grep -nE "#[0-9a-fA-F]{3,8}\b|rgba?\(" engine.ts entities.ts` sin resultados.
 - Contraste (WCAG, vs `bg`): entidades jugables ≥ 3:1, textos en canvas ≥ 4.5:1; decoración por debajo de las entidades.
 

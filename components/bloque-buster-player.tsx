@@ -8,6 +8,8 @@ import {
   BloqueBusterEngine,
   type BloqueBusterSnapshot,
 } from "@/lib/games/bloque-buster/engine";
+import { SKINS } from "@/lib/games/bloque-buster/skins";
+import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: BloqueBusterSnapshot = {
   phase: "ready",
@@ -51,11 +53,18 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
   const engineRef = useRef<BloqueBusterEngine | null>(null);
   const [snapshot, setSnapshot] =
     useState<BloqueBusterSnapshot>(INITIAL_SNAPSHOT);
+  const [skin, setSkin] = useSkin(game.id);
+  // El engine se crea una vez; el skin vigente se lee del ref y luego se cambia en caliente.
+  const skinRef = useRef(skin);
 
   // Motor creado en el efecto: en Strict Mode, destroy() cancela el loop duplicado.
   useEffect(() => {
     if (!canvasRef.current) return;
-    const engine = new BloqueBusterEngine(canvasRef.current, setSnapshot);
+    const engine = new BloqueBusterEngine(
+      canvasRef.current,
+      setSnapshot,
+      SKINS[skinRef.current],
+    );
     engineRef.current = engine;
     engine.mount();
     return () => {
@@ -63,6 +72,11 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       engineRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    skinRef.current = skin;
+    engineRef.current?.setSkin(SKINS[skin]);
+  }, [skin]);
 
   const togglePause = () => {
     blurFocused();
@@ -90,6 +104,8 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       over={snapshot.phase === "gameover"}
       controlsDisabled={snapshot.phase === "ready"}
       crtClassName="bloque-buster-crt"
+      skin={skin}
+      onSkinChange={setSkin}
       pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
       onTogglePause={togglePause}
       onEnd={end}
