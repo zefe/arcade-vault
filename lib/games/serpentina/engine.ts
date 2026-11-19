@@ -134,6 +134,13 @@ export class SerpentinaEngine {
     this.emit();
   }
 
+  // Cambia la paleta en caliente: no reinicia ni toca el estado de la partida.
+  // Repinta ya si el mundo está quieto; en juego lo hace el siguiente frame.
+  setSkin(palette: SerpentinaPalette) {
+    this.palette = palette;
+    if (this.phase !== "playing" || this.paused) this.draw();
+  }
+
   destroy() {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener("keydown", this.handleKeyDown);
