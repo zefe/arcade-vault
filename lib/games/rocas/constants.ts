@@ -57,15 +57,7 @@ export const PARTICLE_TAIL_TIME = 0.05;
 export const SHIP_EXPLOSION_PARTICLES = 14;
 export const ASTEROID_PARTICLES_PER_SIZE = 5;
 
-// Colores: mismos valores que los tokens de globals.css
-export const COLOR_SHIP = "#00f5ff"; // --cyan
-export const COLOR_ASTEROID = "#f5ff00"; // --yellow
-export const COLOR_BULLET = "#e6e9ff"; // --ink
-export const COLOR_POWERUP = "#ff006e"; // --magenta
-export const COLOR_THRUST = "#d97a3a"; // --bronze
-export const COLOR_PARTICLE = "#f5ff00"; // --yellow, con alpha y sin glow
-
-export const GLOW_BLUR = 10; // solo nave, rocas y power-up
+// Colores y glow: ver skins.ts (RocasPalette).
 
 export type Point = { x: number; y: number };
 

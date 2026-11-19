@@ -16,6 +16,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Descripción:** Tu nave triangular flota en vacío absoluto. Dispara y rota para dividir rocas en fragmentos cada vez más pequeños. Recoge el power-up 3x para activar el disparo triple durante 5 segundos.
 - **Cover:** `cover-rocas` · **Orden:** 6
 - **Código:** `lib/games/rocas/`, `components/rocas-player.tsx`
+- **Skins:** clásico (default) · neón · retro ámbar `#ffb000` (`lib/games/rocas/skins.ts`)
 
 ## CAÍDA (`caida`)
 

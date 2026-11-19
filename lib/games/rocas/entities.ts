@@ -6,15 +6,8 @@ import {
   BULLET_RADIUS,
   BULLET_SPEED,
   BULLET_TTL,
-  COLOR_ASTEROID,
-  COLOR_BULLET,
-  COLOR_PARTICLE,
-  COLOR_POWERUP,
-  COLOR_SHIP,
-  COLOR_THRUST,
   DRAG_BASE,
   DRAG_REFERENCE_FPS,
-  GLOW_BLUR,
   INVINCIBILITY_TIME,
   PARTICLE_MAX_LIFE,
   PARTICLE_MAX_SPEED,
@@ -39,6 +32,7 @@ import {
   randInt,
   wrap,
 } from "./constants";
+import type { RocasPalette } from "./skins";
 
 export class Bullet {
   x: number;
@@ -63,8 +57,8 @@ export class Bullet {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = COLOR_BULLET;
+  draw(ctx: CanvasRenderingContext2D, palette: RocasPalette) {
+    ctx.fillStyle = palette.bullet;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -119,13 +113,13 @@ export class Asteroid {
     ];
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, palette: RocasPalette) {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rot);
-    ctx.strokeStyle = COLOR_ASTEROID;
-    ctx.shadowColor = COLOR_ASTEROID;
-    ctx.shadowBlur = GLOW_BLUR;
+    ctx.strokeStyle = palette.asteroid;
+    ctx.shadowColor = palette.asteroid;
+    ctx.shadowBlur = palette.glow;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -164,25 +158,25 @@ export class PowerUp {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, palette: RocasPalette) {
     if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return;
     // Pulso derivado de ttl, no del reloj, para que se congele en pausa.
     const pulse = 0.85 + Math.sin((this.ttl * 1000) / 150) * 0.15;
     const r = this.radius * pulse;
 
     ctx.save();
-    ctx.shadowColor = COLOR_POWERUP;
-    ctx.shadowBlur = GLOW_BLUR;
+    ctx.shadowColor = palette.powerup;
+    ctx.shadowBlur = palette.glow;
 
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
-    ctx.strokeStyle = COLOR_POWERUP;
+    ctx.strokeStyle = palette.powerup;
     ctx.lineWidth = 2;
     ctx.strokeRect(-r, -r, r * 2, r * 2);
     ctx.restore();
 
-    ctx.fillStyle = COLOR_POWERUP;
+    ctx.fillStyle = palette.powerup;
     ctx.font = "bold 12px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -262,7 +256,7 @@ export class Ship {
     return [new Bullet(ox, oy, this.angle)];
   }
 
-  draw(ctx: CanvasRenderingContext2D, blink = true) {
+  draw(ctx: CanvasRenderingContext2D, palette: RocasPalette, blink = true) {
     if (this.dead) return;
     // Parpadeo durante la invencibilidad
     if (
@@ -275,9 +269,9 @@ export class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = COLOR_SHIP;
-    ctx.shadowColor = COLOR_SHIP;
-    ctx.shadowBlur = GLOW_BLUR;
+    ctx.strokeStyle = palette.ship;
+    ctx.shadowColor = palette.ship;
+    ctx.shadowBlur = palette.glow;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = "round";
 
@@ -290,8 +284,8 @@ export class Ship {
     ctx.stroke();
 
     if (this.flameLength > 0) {
-      ctx.strokeStyle = COLOR_THRUST;
-      ctx.shadowColor = COLOR_THRUST;
+      ctx.strokeStyle = palette.thrust;
+      ctx.shadowColor = palette.thrust;
       ctx.beginPath();
       ctx.moveTo(-8, -4);
       ctx.lineTo(-8 - this.flameLength, 0);
@@ -330,9 +324,9 @@ export class Particle {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D) {
+  draw(ctx: CanvasRenderingContext2D, palette: RocasPalette) {
     ctx.globalAlpha = Math.max(this.ttl / this.life, 0);
-    ctx.strokeStyle = COLOR_PARTICLE;
+    ctx.strokeStyle = palette.particle;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
