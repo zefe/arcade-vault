@@ -42,6 +42,10 @@ Subagents live in `.claude/agents/`; project memory in `.claude/agent-memory/<ag
 - `game-jam` (`.claude/agents/game-jam.md`, model opus, `memory: project`): given a theme, autonomously designs one original game (3 internal concepts scored /35, picks 1) and writes 2–3 complete specs in `Borrador` to `specs/game-jam/<game-id>/` (`01-juego-<id>.md` core playable + ranked insert; `02-<id>-<contenido>.md` progression; optional `03-<id>-<extra>.md`), same format as SPEC 06–08. Invoke e.g. "usa game-jam con el tema océano".
   - Always a new `games` row; no questions (defaults recorded in Decisiones); read-only SQL; never writes code, `.sql` files or `references/`.
   - Memory: `.claude/agent-memory/game-jam/MEMORY.md` (themes, ids, discarded concepts).
+- `skin-designer` (`.claude/agents/skin-designer.md`, model opus, `memory: project`): audits and implements the 3 mandatory skins per real game — `clasico` (default, flat 80s arcade, no glow), `neon` (current palette + glow), `retro` (monochrome green/amber phosphor + scanlines) — with dark-mode contrast checks (entities ≥ 3:1, text ≥ 4.5:1 vs bg). Invoke e.g. "usa skin-designer para revisar skins" (audit only: "solo auditar").
+  - Contract: `lib/skins.ts` (`SkinId`, `DEFAULT_SKIN`, `BaseSkin`), `lib/use-skin.ts` (`useSkin(gameId)`, localStorage `av_skin_<gameId>`), `lib/games/<id>/skins.ts` (`SKINS: Record<SkinId, Palette>`), engine `setSkin()` hot-swap, chips selector in `PlayerShell` (`skin`/`onSkinChange` props, `.crt.skin-<id>`).
+  - Never touches Supabase, scores or gameplay; updates `patron-juego-real.md`/`template.md` so new games ship with skins.
+  - Memory: `.claude/agent-memory/skin-designer/MEMORY.md` (audits, palettes, preferences).
 
 ## Tooling
 
