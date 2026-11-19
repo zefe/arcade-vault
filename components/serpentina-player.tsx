@@ -7,6 +7,8 @@ import {
   SerpentinaEngine,
   type SerpentinaSnapshot,
 } from "@/lib/games/serpentina/engine";
+import { SKINS } from "@/lib/games/serpentina/skins";
+import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: SerpentinaSnapshot = {
   phase: "ready",
@@ -45,6 +47,9 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
     getIsTouch,
     getIsTouchOnServer,
   );
+  const [skin, setSkin] = useSkin(game.id);
+  // El engine se crea una vez; el skin vigente se lee del ref y luego se cambia en caliente.
+  const skinRef = useRef(skin);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<SerpentinaEngine | null>(null);
   const [snapshot, setSnapshot] =
@@ -53,7 +58,11 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
   // Motor creado en el efecto: en Strict Mode, destroy() cancela el loop duplicado.
   useEffect(() => {
     if (!canvasRef.current) return;
-    const engine = new SerpentinaEngine(canvasRef.current, setSnapshot);
+    const engine = new SerpentinaEngine(
+      canvasRef.current,
+      setSnapshot,
+      SKINS[skinRef.current],
+    );
     engineRef.current = engine;
     engine.mount();
     return () => {
@@ -61,6 +70,12 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
       engineRef.current = null;
     };
   }, []);
+
+  // Cambio de skin sin recrear el motor: misma partida, nueva paleta.
+  useEffect(() => {
+    skinRef.current = skin;
+    engineRef.current?.setSkin(SKINS[skin]);
+  }, [skin]);
 
   const togglePause = () => {
     blurFocused();
@@ -92,6 +107,8 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
+      skin={skin}
+      onSkinChange={setSkin}
     >
       <canvas ref={canvasRef} aria-label={`Partida de ${game.title}`} />
       {snapshot.phase === "ready" && (
