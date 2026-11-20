@@ -37,6 +37,12 @@ import {
   randomPiece,
   rotateCW,
 } from "./entities";
+import {
+  FAST_SWIPE_PX_PER_MS,
+  TAP_MAX_MS,
+  TAP_MAX_PX,
+  classifySwipe,
+} from "../gestures";
 
 export type CaidaPhase = "ready" | "playing" | "gameover";
 
@@ -60,6 +66,7 @@ const GAME_KEYS = new Set([
 const REPEATABLE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowDown"]);
 
 export class CaidaEngine {
+  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: CaidaSnapshot) => void;
@@ -82,11 +89,21 @@ export class CaidaEngine {
   private softDropHeld = false;
   private softDropAccum = 0; // segundos
 
+  // Gestos: un solo puntero activo (el del primer pointerdown); el resto se ignora.
+  // Coordenadas en px CSS; `axis` se fija al superar el umbral y no cambia hasta soltar.
+  private pointerId: number | null = null;
+  private pointerStartX = 0;
+  private pointerStartY = 0;
+  private pointerStartTime = 0; // ms (event.timeStamp)
+  private pointerColX = 0; // origen de la siguiente columna del arrastre horizontal
+  private pointerAxis: "h" | "down" | "none" | null = null;
+
   private rafId = 0;
   private lastTime: number | null = null;
   private lastSnapshot: CaidaSnapshot | null = null;
 
   constructor(canvas: HTMLCanvasElement, onChange: (s: CaidaSnapshot) => void) {
+    this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("CaidaEngine: canvas 2D no disponible");
     this.ctx = ctx;
@@ -100,6 +117,10 @@ export class CaidaEngine {
   mount() {
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
+    this.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.addEventListener("pointermove", this.handlePointerMove);
+    this.canvas.addEventListener("pointerup", this.handlePointerUp);
+    this.canvas.addEventListener("pointercancel", this.handlePointerCancel);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -116,6 +137,7 @@ export class CaidaEngine {
     // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
     this.keys = {};
     this.softDropHeld = false;
+    this.pointerId = null;
     if (this.phase !== "playing") return;
     this.paused = true;
     this.emit();
@@ -180,6 +202,10 @@ export class CaidaEngine {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
+    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("pointermove", this.handlePointerMove);
+    this.canvas.removeEventListener("pointerup", this.handlePointerUp);
+    this.canvas.removeEventListener("pointercancel", this.handlePointerCancel);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
@@ -241,6 +267,89 @@ export class CaidaEngine {
     if (this.capturesKeys() && GAME_KEYS.has(e.code)) e.preventDefault();
     this.keys[e.code] = false;
   };
+
+  // ===== Gestos (táctil, y también ratón/lápiz) =====
+  // Tap = rotar · arrastre ↔ = 1 columna por cada BLOCK del mundo · arrastre lento ↓ = bajar
+  // mientras se mantiene · swipe rápido ↓ = caída instantánea · tap en "ready" = empezar.
+  private handlePointerDown = (e: PointerEvent) => {
+    if (this.pointerId !== null || this.phase === "gameover" || this.paused)
+      return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    this.pointerId = e.pointerId;
+    this.pointerStartX = this.pointerColX = e.clientX;
+    this.pointerStartY = e.clientY;
+    this.pointerStartTime = e.timeStamp;
+    this.pointerAxis = null;
+    this.canvas.setPointerCapture(e.pointerId);
+  };
+
+  private handlePointerMove = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId || !this.canAct()) return;
+    const dx = e.clientX - this.pointerStartX;
+    const dy = e.clientY - this.pointerStartY;
+
+    if (this.pointerAxis === null) {
+      const dir = classifySwipe(dx, dy);
+      if (!dir) return;
+      if (dir === "left" || dir === "right") {
+        this.pointerAxis = "h";
+      } else if (dir === "down") {
+        const ms = Math.max(1, e.timeStamp - this.pointerStartTime);
+        if (dy / ms >= FAST_SWIPE_PX_PER_MS) {
+          this.pointerAxis = "none"; // gesto consumido hasta soltar
+          this.hardDrop();
+          return;
+        }
+        this.pointerAxis = "down";
+        this.setSoftDrop(true);
+      } else {
+        this.pointerAxis = "none"; // hacia arriba: sin acción
+      }
+    }
+
+    if (this.pointerAxis === "h") {
+      const rect = this.canvas.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const cellPx = (BLOCK * rect.width) / WORLD_WIDTH;
+      // Una llamada a move() por columna: nunca salta columnas.
+      while (e.clientX - this.pointerColX >= cellPx) {
+        this.move(1);
+        this.pointerColX += cellPx;
+      }
+      while (this.pointerColX - e.clientX >= cellPx) {
+        this.move(-1);
+        this.pointerColX -= cellPx;
+      }
+    }
+  };
+
+  // En "ready" el pointerup solo empieza la partida y se consume.
+  private handlePointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId) return;
+    const axis = this.pointerAxis;
+    this.endPointer();
+    if (this.phase === "ready") {
+      this.start();
+      return;
+    }
+    const moved = Math.hypot(
+      e.clientX - this.pointerStartX,
+      e.clientY - this.pointerStartY,
+    );
+    const ms = e.timeStamp - this.pointerStartTime;
+    if (axis === null && moved <= TAP_MAX_PX && ms <= TAP_MAX_MS) this.rotate();
+  };
+
+  private handlePointerCancel = (e: PointerEvent) => {
+    if (e.pointerId === this.pointerId) this.endPointer();
+  };
+
+  private endPointer() {
+    this.pointerId = null;
+    this.pointerAxis = null;
+    if (this.softDropHeld) this.setSoftDrop(false);
+  }
 
   // Las acciones solo cuentan en partida y sin pausa (también si una anterior terminó la partida).
   private canAct() {
