@@ -1496,10 +1496,6 @@ a {
   font-size: 14px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.caida-touch {
-  margin-top: 16px;
-  font-size: 10px;
-}
 /* En pantallas estrechas la columna no cabe: el overlay ocupa toda la CRT. */
 @media (max-width: 760px) {
   .caida-ready {
@@ -1524,10 +1520,6 @@ a {
   }
   .caida-start {
     font-size: 11px;
-  }
-  .caida-touch {
-    margin-top: 6px;
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

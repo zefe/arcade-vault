@@ -22,6 +22,13 @@ const CONTROLS = [
   { keys: ["P"], action: "Pausar" },
 ];
 
+const TOUCH_CONTROLS = [
+  { keys: ["Toca"], action: "Rotar" },
+  { keys: ["Arrastra ↔"], action: "Mover" },
+  { keys: ["Arrastra ↓"], action: "Bajar" },
+  { keys: ["Desliza ↓ rápido"], action: "Caída" },
+];
+
 // Sin esto, el botón conserva el foco y Espacio lo activaría en vez de soltar la pieza.
 const blurFocused = () => {
   if (document.activeElement instanceof HTMLElement)
@@ -72,7 +79,11 @@ export function CaidaPlayer({ game }: { game: Game }) {
       over={snapshot.phase === "gameover"}
       controlsDisabled={snapshot.phase === "ready"}
       crtClassName="caida-crt"
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -82,7 +93,7 @@ export function CaidaPlayer({ game }: { game: Game }) {
         <div className="crt-content caida-ready">
           <div>
             <dl className="caida-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={action}>
                   <dt>
                     {keys.map((key) => (
@@ -93,12 +104,9 @@ export function CaidaPlayer({ game }: { game: Game }) {
                 </div>
               ))}
             </dl>
-            <div className="pixel neon-magenta caida-start">PULSA ESPACIO</div>
-            {isTouch && (
-              <div className="pixel neon-yellow caida-touch">
-                REQUIERE TECLADO
-              </div>
-            )}
+            <div className="pixel neon-magenta caida-start">
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
+            </div>
           </div>
         </div>
       )}
