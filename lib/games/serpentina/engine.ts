@@ -25,6 +25,7 @@ import {
   drawGrid,
   drawSnake,
 } from "./entities";
+import type { SwipeDir } from "../gestures";
 import type { SerpentinaPalette } from "./skins";
 
 export type SerpentinaPhase = "ready" | "playing" | "gameover";
@@ -134,6 +135,13 @@ export class SerpentinaEngine {
     this.emit();
   }
 
+  // Acción de giro compartida por teclado y táctil: entra en la cola de 2 giros, sin 180°.
+  // Ignorada fuera de "playing" y en pausa.
+  turn(dir: SwipeDir) {
+    if (this.phase !== "playing" || this.paused) return;
+    this.queueTurn(dir);
+  }
+
   // Cambia la paleta en caliente: no reinicia ni toca el estado de la partida.
   // Repinta ya si el mundo está quieto; en juego lo hace el siguiente frame.
   setSkin(palette: SerpentinaPalette) {
@@ -174,8 +182,8 @@ export class SerpentinaEngine {
       return;
     }
     const turn = TURN_KEYS[e.code];
-    if (!turn || this.paused || e.repeat) return;
-    this.queueTurn(turn);
+    if (!turn || e.repeat) return;
+    this.turn(turn);
   };
 
   private handleBlur = () => this.pause();
