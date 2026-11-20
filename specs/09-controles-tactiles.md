@@ -1,6 +1,6 @@
 # SPEC 09 — Controles táctiles en los juegos reales
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, SPEC 08
 > **Fecha:** 2026-11-19
 > **Objetivo:** Hacer jugables de principio a fin en un móvil táctil en vertical los 4 juegos reales (ROCAS, CAÍDA, BLOQUE BUSTER, SERPENTINA), con gestos o botones en pantalla según el juego.
