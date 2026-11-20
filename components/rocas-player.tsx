@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
+import { RocasTouchPad } from "@/components/rocas-touch-pad";
 import type { Game } from "@/lib/games";
 import { STARTING_LIVES } from "@/lib/games/rocas/constants";
 import { RocasEngine, type RocasSnapshot } from "@/lib/games/rocas/engine";
@@ -22,6 +23,12 @@ const CONTROLS = [
   { keys: ["↑"], action: "Propulsar" },
   { keys: ["Espacio"], action: "Disparar" },
   { keys: ["P"], action: "Pausar" },
+];
+
+const TOUCH_CONTROLS = [
+  { keys: ["←", "→"], action: "Rotar" },
+  { keys: ["↑"], action: "Propulsar" },
+  { keys: ["FUEGO"], action: "Disparar" },
 ];
 
 // Sin esto, el botón conserva el foco y Espacio lo activaría en vez de disparar.
@@ -87,7 +94,26 @@ export function RocasPlayer({ game }: { game: Game }) {
       crtClassName="rocas-crt"
       skin={skin}
       onSkinChange={setSkin}
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
+      touchControls={
+        isTouch && (
+          <RocasTouchPad
+            onControl={(control, down) =>
+              engineRef.current?.setControl(control, down)
+            }
+            onFire={() => engineRef.current?.fire()}
+            disabled={
+              snapshot.phase === "ready" ||
+              snapshot.phase === "gameover" ||
+              snapshot.paused
+            }
+          />
+        )
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -97,7 +123,7 @@ export function RocasPlayer({ game }: { game: Game }) {
         <div className="crt-content rocas-ready">
           <div>
             <dl className="rocas-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={action}>
                   <dt>
                     {keys.map((key) => (
@@ -108,12 +134,9 @@ export function RocasPlayer({ game }: { game: Game }) {
                 </div>
               ))}
             </dl>
-            <div className="pixel neon-yellow rocas-start">PULSA ESPACIO</div>
-            {isTouch && (
-              <div className="pixel neon-magenta rocas-touch">
-                REQUIERE TECLADO
-              </div>
-            )}
+            <div className="pixel neon-yellow rocas-start">
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
+            </div>
           </div>
         </div>
       )}
