@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  allowedDevOrigins: ["http://localhost:3000", "http://192.168.1.129:3000"],
+  // Solo hostname (sin esquema ni puerto): IP LAN para probar en un móvil real (SPEC 09).
+  allowedDevOrigins: ["192.168.1.129"],
 };
 
 export default nextConfig;
