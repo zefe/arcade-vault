@@ -26,6 +26,8 @@ const CONTROLS = [
   { keys: ["P", "Esc"], action: "Pausar" },
 ];
 
+const TOUCH_CONTROLS = [{ keys: ["Arrastra"], action: "Mover la paleta" }];
+
 // Sin esto, el botón conserva el foco y Espacio lo activaría de nuevo.
 const blurFocused = () => {
   if (document.activeElement instanceof HTMLElement)
@@ -92,7 +94,11 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       crtClassName="bloque-buster-crt"
       skin={skin}
       onSkinChange={setSkin}
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -102,7 +108,7 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
         <div className="crt-content bloque-buster-ready">
           <div>
             <dl className="bloque-buster-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={keys.join("")}>
                   <dt>
                     {keys.map((key) => (
@@ -114,13 +120,8 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
               ))}
             </dl>
             <div className="pixel neon-yellow bloque-buster-start">
-              PULSA ESPACIO
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
             </div>
-            {isTouch && (
-              <div className="pixel neon-magenta bloque-buster-touch">
-                REQUIERE TECLADO O RATÓN
-              </div>
-            )}
           </div>
         </div>
       )}

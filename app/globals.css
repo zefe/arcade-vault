@@ -1595,10 +1595,6 @@ a {
   font-size: 16px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.bloque-buster-touch {
-  margin-top: 16px;
-  font-size: 10px;
-}
 /* En pantallas estrechas la franja no cabe: el overlay ocupa toda la CRT. */
 @media (max-width: 760px) {
   .bloque-buster-ready {
@@ -1623,10 +1619,6 @@ a {
   }
   .bloque-buster-start {
     font-size: 11px;
-  }
-  .bloque-buster-touch {
-    margin-top: 6px;
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
