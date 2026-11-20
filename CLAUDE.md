@@ -46,6 +46,11 @@ Subagents live in `.claude/agents/`; project memory in `.claude/agent-memory/<ag
   - Contract: `lib/skins.ts` (`SkinId`, `DEFAULT_SKIN`, `BaseSkin`), `lib/use-skin.ts` (`useSkin(gameId)`, localStorage `av_skin_<gameId>`), `lib/games/<id>/skins.ts` (`SKINS: Record<SkinId, Palette>`), engine `setSkin()` hot-swap, chips selector in `PlayerShell` (`skin`/`onSkinChange` props, `.crt.skin-<id>`).
   - Never touches Supabase, scores or gameplay; updates `patron-juego-real.md`/`template.md` so new games ship with skins.
   - Memory: `.claude/agent-memory/skin-designer/MEMORY.md` (audits, palettes, preferences).
+- `mobile-porter` (`.claude/agents/mobile-porter.md`, model opus, `memory: project`): audits and fixes the mobile experience — mobile web (portrait first, landscape) and installed app (PWA standalone; no native app) — using SPEC 09 as the touch contract. Invoke e.g. "usa mobile-porter para revisar el móvil" (audit only: "solo auditar").
+  - Checklist per route: no horizontal scroll at 360–414 px, `dvh`, touch targets ≥ 44 px, inputs ≥ 16 px, no hover-only UI, safe areas, `viewport` export, SPEC 09 contract per real game.
+  - Fixes CSS/layout/touch wiring directly; new features (PWA manifest/icons, landscape player, fullscreen, vibration, mobile menu) go to a new spec in Borrador, never implemented by the agent.
+  - Never touches Supabase, scores, gameplay/balance or skins.
+  - Memory: `.claude/agent-memory/mobile-porter/MEMORY.md` (audits, decisions, proposed specs, 👁 pending device checks).
 
 ## Tooling
 
