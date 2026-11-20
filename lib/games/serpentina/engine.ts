@@ -25,7 +25,7 @@ import {
   drawGrid,
   drawSnake,
 } from "./entities";
-import type { SwipeDir } from "../gestures";
+import { type SwipeDir, classifySwipe } from "../gestures";
 import type { SerpentinaPalette } from "./skins";
 
 export type SerpentinaPhase = "ready" | "playing" | "gameover";
@@ -78,6 +78,11 @@ export class SerpentinaEngine {
   private lastTime: number | null = null;
   private lastSnapshot: SerpentinaSnapshot | null = null;
 
+  // Gestos: un solo puntero activo (el del primer pointerdown); el resto se ignora.
+  private pointerId: number | null = null;
+  private pointerX = 0; // origen del swipe en curso, px CSS
+  private pointerY = 0;
+
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: SerpentinaSnapshot) => void,
@@ -99,6 +104,10 @@ export class SerpentinaEngine {
   mount() {
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("blur", this.handleBlur);
+    this.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.addEventListener("pointermove", this.handlePointerMove);
+    this.canvas.addEventListener("pointerup", this.handlePointerUp);
+    this.canvas.addEventListener("pointercancel", this.handlePointerCancel);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
     this.rafId = requestAnimationFrame(this.loop);
@@ -113,6 +122,7 @@ export class SerpentinaEngine {
   // Se vacía la cola en cualquier fase: un giro pulsado antes de pausar no se aplica al reanudar.
   pause() {
     this.turns = [];
+    this.pointerId = null;
     if (this.phase !== "playing") return;
     this.paused = true;
     this.emit();
@@ -153,6 +163,10 @@ export class SerpentinaEngine {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("blur", this.handleBlur);
+    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("pointermove", this.handlePointerMove);
+    this.canvas.removeEventListener("pointerup", this.handlePointerUp);
+    this.canvas.removeEventListener("pointercancel", this.handlePointerCancel);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
@@ -184,6 +198,44 @@ export class SerpentinaEngine {
     const turn = TURN_KEYS[e.code];
     if (!turn || e.repeat) return;
     this.turn(turn);
+  };
+
+  // Táctil (y ratón/lápiz): tap en "ready" empieza; swipe en "playing" gira.
+  // Ignorado en pausa y en "gameover", igual que el teclado.
+  private handlePointerDown = (e: PointerEvent) => {
+    if (this.pointerId !== null || this.phase === "gameover" || this.paused)
+      return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    this.pointerId = e.pointerId;
+    this.pointerX = e.clientX;
+    this.pointerY = e.clientY;
+    this.canvas.setPointerCapture(e.pointerId);
+  };
+
+  // Cada swipe que supera el umbral gira y reinicia el origen: un trazo en L encola dos giros.
+  private handlePointerMove = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId) return;
+    if (this.phase !== "playing" || this.paused) return;
+    const dir = classifySwipe(
+      e.clientX - this.pointerX,
+      e.clientY - this.pointerY,
+    );
+    if (!dir) return;
+    this.turn(dir);
+    this.pointerX = e.clientX;
+    this.pointerY = e.clientY;
+  };
+
+  // En "ready" el pointerup solo empieza la partida y se consume.
+  private handlePointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId) return;
+    this.pointerId = null;
+    if (this.phase === "ready") this.start();
+  };
+
+  private handlePointerCancel = (e: PointerEvent) => {
+    if (e.pointerId === this.pointerId) this.pointerId = null;
   };
 
   private handleBlur = () => this.pause();
