@@ -1695,10 +1695,6 @@ a {
   font-size: 16px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.serpentina-touch {
-  margin-top: 12px;
-  font-size: 10px;
-}
 /* En pantallas estrechas la franja no cabe: el overlay ocupa toda la CRT. */
 @media (max-width: 760px) {
   .serpentina-ready {
@@ -1723,10 +1719,6 @@ a {
   }
   .serpentina-start {
     font-size: 11px;
-  }
-  .serpentina-touch {
-    margin-top: 6px;
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

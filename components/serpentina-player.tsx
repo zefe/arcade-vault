@@ -24,6 +24,8 @@ const CONTROLS = [
   { keys: ["P", "Esc"], action: "Pausar" },
 ];
 
+const TOUCH_CONTROLS = [{ keys: ["Desliza ↑ ↓ ← →"], action: "Girar" }];
+
 // Sin esto, el botón conserva el foco y Espacio lo activaría de nuevo.
 const blurFocused = () => {
   if (document.activeElement instanceof HTMLElement)
@@ -89,7 +91,11 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
       over={snapshot.phase === "gameover"}
       controlsDisabled={snapshot.phase === "ready"}
       crtClassName="serpentina-crt"
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -101,7 +107,7 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
         <div className="crt-content serpentina-ready">
           <div>
             <dl className="serpentina-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={keys.join("")}>
                   <dt>
                     {keys.map((key) => (
@@ -113,13 +119,8 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
               ))}
             </dl>
             <div className="pixel neon-yellow serpentina-start">
-              PULSA ESPACIO
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
             </div>
-            {isTouch && (
-              <div className="pixel neon-magenta serpentina-touch">
-                REQUIERE TECLADO
-              </div>
-            )}
           </div>
         </div>
       )}
