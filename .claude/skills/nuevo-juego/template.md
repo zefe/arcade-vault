@@ -25,14 +25,14 @@
 - PAUSA real con botón, `P` o `Esc`, y auto-pausa al perder foco o cambiar de pestaña.
 - FIN y fin de partida abren el modal FIN DEL JUEGO existente.
 - Guardado en `scores` con `game_id = '<id>'` mediante una migración que pone `ranked = true`.
-- Aviso `REQUIERE TECLADO` en táctil.
+- Controles táctiles (patrón SPEC 09): <gestos en el canvas | botones en pantalla vía `touchControls`>, tocar la CRT en `ready` para empezar, overlay con controles táctiles y `TOCA PARA EMPEZAR`, `pauseHint` táctil.
 - [si 2.º juego real] Registro `components/game-players.ts` que sustituye `game.id === "rocas"`.
 - [si HUD distinto] Ampliación opcional de `PlayerShell` para <campo>.
-- Ficha de <id> corregida: `long` fiel a lo implementado y `controls = '<TECLADO>'`.
+- Ficha de <id> corregida: `long` fiel a lo implementado y `controls = '<TECLADO / TÁCTIL>'`.
 
 **Fuera de alcance (specs futuras):**
 
-- Controles táctiles.
+- Layout táctil en horizontal.
 - Sonido.
 - Mecánicas nuevas o cambios de balance.
 - Antifraude, topes de score o Auth real.
@@ -48,13 +48,13 @@ Sin cambios de esquema. Migración `supabase/migrations/<NNNN>_juego_<id>.sql`:
 -- [fila existente]
 update public.games
 set ranked = true,
-    controls = '<TECLADO>',
+    controls = '<TECLADO / TÁCTIL>',
     long = '<texto>'
 where id = '<id>';
 
 -- [fila nueva]
 insert into public.games (id, title, short, long, cat, cover, color, controls, ranked, sort_order)
-values ('<id>', '<TITLE>', '<short>', '<long>', '<CAT>', 'cover-<x>', '<color>', '<TECLADO>', true, <n>);
+values ('<id>', '<TITLE>', '<short>', '<long>', '<CAT>', 'cover-<x>', '<color>', '<TECLADO / TÁCTIL>', true, <n>);
 ```
 
 Contrato del motor (`lib/games/<id>/engine.ts`):
@@ -107,6 +107,13 @@ Teclas:
 | `<inicio>`  | Empezar           | `ready`       |
 | `P` / `Esc` | Pausar o reanudar | <fases>       |
 
+Táctil (pointer events en el canvas, `lib/games/gestures.ts`):
+
+| Gesto / botón | Acción (método público) | Fases activas |
+| ------------- | ----------------------- | ------------- |
+| <...>         | <...>                   | `playing`     |
+| Tocar la CRT  | Empezar (`start()`)     | `ready`       |
+
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para overlays y estilos.
@@ -117,12 +124,13 @@ Teclas:
 6. Crear `lib/games/<id>/engine.ts` con estado, `update`, colisiones, <niveles> y `end()`, sin dibujo ni loop. Quitar el reinicio por tecla de `gameover`.
 7. Añadir el dibujo del mundo y efectos de juego, sin HUD ni overlay de game over. Configurar el backing store con `dpr`.
 8. Añadir el loop y los listeners: `mount()`, `destroy()`, `pause()`, `resume()`; `onChange` solo si cambia el snapshot; en pausa se dibuja sin `update`; al pausar se limpian `keys` y `justPressed`; `blur` y `visibilitychange` pausan.
-9. Añadir la gestión de teclas por fase, con `preventDefault` solo fuera de `gameover`.
+9. Añadir la gestión de teclas por fase, con `preventDefault` solo fuera de `gameover`, llamando a la API de acciones pública del motor.
+   9b. Añadir pointer events en el canvas (`mount()`/`destroy()`, un puntero activo, `gestures.ts`): <gestos>; tap en `ready` → `start()`.
 10. Crear `components/<id>-player.tsx` (`"use client"`) sobre `PlayerShell`, con el motor en `useEffect` y `destroy()` en el cleanup; `useSkin(game.id)`, `engine.setSkin()` al cambiar y props `skin`/`onSkinChange`.
-11. Añadir el overlay de `ready` con controles, `PULSA <TECLA>` y `REQUIERE TECLADO` en táctil (`useSyncExternalStore`).
-12. Conectar los botones: PAUSA y FIN desactivados en `ready`, `blur()` tras cada click, `pauseHint` `PULSA P O REANUDAR PARA CONTINUAR`.
+11. Añadir el overlay de `ready` con controles de teclado y `PULSA <TECLA>`, o en táctil (`useIsTouch()`) controles táctiles y `TOCA PARA EMPEZAR`. [si botones] Botonera vía `touchControls` (modelo `components/rocas-touch-pad.tsx`).
+12. Conectar los botones: PAUSA y FIN desactivados en `ready`, `blur()` tras cada click, `pauseHint` `PULSA P O REANUDAR PARA CONTINUAR` (táctil: `PULSA REANUDAR PARA CONTINUAR`).
 13. Seleccionar `<Id>Player` para `game.id === "<id>"` <en el registro | en la página de jugar>.
-14. Añadir a `app/globals.css` `.<id>-crt` (ancho limitado por `100dvh` para <W>:<H>) y los estilos del overlay. [si fila nueva] Añadir `.cover-<x>`.
+14. Añadir a `app/globals.css` `.<id>-crt` (ancho limitado por `100dvh` para <W>:<H>) y los estilos del overlay; añadir `.<id>-ready` a la regla `pointer-events: none` del bloque táctil. [si fila nueva] Añadir `.cover-<x>`.
 15. [si assets] Copiar assets a `public/games/<id>/` sin tocar `references/`.
 16. Crear la migración `<NNNN>_juego_<id>.sql`, aplicarla con MCP `apply_migration` y revisar `get_advisors`.
 17. Actualizar `CLAUDE.md` (Stack notes) si cambia el patrón de juegos reales.
@@ -160,6 +168,13 @@ Teclas:
 - [ ] `engine.ts` y `entities.ts` no contienen colores literales.
 - [ ] A 1440×900, la pantalla CRT completa se ve sin hacer scroll.
 - [ ] Las teclas de juego no desplazan la página durante la partida.
+
+**Táctil** (Chrome DevTools con emulación táctil o móvil real, vertical)
+
+- [ ] El overlay muestra los controles táctiles y `TOCA PARA EMPEZAR`; tocar la CRT empieza sin ejecutar ninguna acción.
+- [ ] <Un criterio booleano por gesto o botón.>
+- [ ] Tocar o arrastrar en la CRT no hace scroll, zoom ni selección; en pausa los gestos no tienen efecto.
+- [ ] A 375 px de ancho no hay scroll horizontal y el HUD no desborda.
 
 **Pausa**
 
@@ -208,7 +223,7 @@ Teclas:
 - **Sí:** `ranked = true` por migración. Regla de SPEC 05: solo juegos con motor real.
 - **Sí:** <mantener balance original>. El objetivo es adaptar, no rediseñar.
 - **Sí:** quitar el reinicio por tecla en `gameover`. Evita perder la puntuación sin querer.
-- **Sí:** solo teclado con aviso. Los controles táctiles requieren diseño propio.
+- **Sí:** controles táctiles desde el principio (patrón SPEC 09). <Gestos | botones> porque <motivo>.
 - [si registro] **Sí:** registro `id → player` con el 2.º juego real. Decisión diferida en SPEC 04 y 05.
 - <Decisiones de Fase 2, con **Sí:**/**No:** y una frase de justificación.>
 
@@ -227,7 +242,7 @@ Teclas:
 
 ## Lo que **no** entra en esta spec
 
-- Controles táctiles.
+- Layout táctil en horizontal.
 - Sonido.
 - Mecánicas nuevas o cambios de balance.
 - Antifraude o Auth real.

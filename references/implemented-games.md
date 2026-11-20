@@ -2,13 +2,14 @@
 
 Juegos con motor real (`lib/games/<id>/`), registrados en `GAME_PLAYERS` (`components/game-players.ts`) y con `ranked = true` en la tabla `games` (leaderboard público).
 
-Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
+Fuente: tabla `games` en Supabase + código, consultado el 2026-11-19.
 
 | #   | ID              | Título        | Categoría | Controles        | Color   | Spec |
 | --- | --------------- | ------------- | --------- | ---------------- | ------- | ---- |
-| 1   | `rocas`         | ROCAS         | SHOOTER   | TECLADO          | yellow  | 04   |
-| 2   | `caida`         | CAÍDA         | PUZZLE    | TECLADO          | magenta | 06   |
-| 3   | `bloque-buster` | BLOQUE BUSTER | ARCADE    | TECLADO / RATÓN  | cyan    | 07   |
+| 1   | `rocas`         | ROCAS         | SHOOTER   | TECLADO / TÁCTIL         | yellow  | 04, 09 |
+| 2   | `caida`         | CAÍDA         | PUZZLE    | TECLADO / TÁCTIL         | magenta | 06, 09 |
+| 3   | `bloque-buster` | BLOQUE BUSTER | ARCADE    | TECLADO / RATÓN / TÁCTIL | cyan    | 07, 09 |
+| 4   | `serpentina`    | SERPENTINA    | ARCADE    | TECLADO / TÁCTIL         | green   | 08, 09 |
 
 ## ROCAS (`rocas`)
 
@@ -17,6 +18,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Cover:** `cover-rocas` · **Orden:** 6
 - **Código:** `lib/games/rocas/`, `components/rocas-player.tsx`
 - **Skins:** clásico (default) · neón · retro ámbar `#ffb000` (`lib/games/rocas/skins.ts`)
+- **Táctil:** botones bajo la CRT `◀ ▶` (rotar) · `▲` (propulsar) · `FUEGO` (1 disparo por toque), multitouch (`components/rocas-touch-pad.tsx`).
 
 ## CAÍDA (`caida`)
 
@@ -24,6 +26,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Descripción:** Piezas geométricas descienden desde la oscuridad, incluida una tuerca hueca de 3×3. Muévelas, rótalas y encástralas para limpiar líneas. La pieza fantasma marca dónde caerán y el panel anticipa la siguiente. La velocidad aumenta cada 10 líneas.
 - **Cover:** `cover-tetro` · **Orden:** 2
 - **Código:** `lib/games/caida/`, `components/caida-player.tsx`
+- **Táctil:** tap = rotar · arrastre ↔ = 1 columna por celda · arrastre lento ↓ = bajar (1 fila / 50 ms) · swipe rápido ↓ = caída instantánea.
 
 ## BLOQUE BUSTER (`bloque-buster`)
 
@@ -32,10 +35,16 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-13.
 - **Cover:** `cover-bricks` · **Orden:** 1
 - **Código:** `lib/games/bloque-buster/`, `components/bloque-buster-player.tsx`
 - **Skins:** clásico (default) · neón · retro verde `#33ff66`, ladrillos por luminancia + patrón sólido/contorno/franja (`lib/games/bloque-buster/skins.ts`)
+- **Táctil:** arrastrar el dedo lleva la paleta a su X (misma conversión que el ratón).
 
-## En curso
+## SERPENTINA (`serpentina`)
 
-- **SERPENTINA** (`serpentina`, ARCADE, SPEC 08 Aprobado): ya existe en la tabla `games` con `ranked = true`, pero aún no tiene motor ni player en código.
+- **Resumen:** Crece sin morder tu propia cola.
+- **Descripción:** Una serpiente de luz recorre una rejilla de 32×24 casillas comiendo frutas de neón. Cada fruta la alarga una casilla y vale 10 puntos por nivel. Cada 5 frutas sube de nivel y acelera, hasta el nivel 10. Chocar con un muro o con tu propia cola termina la partida.
+- **Cover:** `cover-snake` · **Orden:** 3
+- **Código:** `lib/games/serpentina/`, `components/serpentina-player.tsx`
+- **Skins:** clásico (default) · neón · retro verde `#33ff66` (`lib/games/serpentina/skins.ts`)
+- **Táctil:** swipe ↑ ↓ ← → (≥ 24 px) entra en la cola de 2 giros.
 
 ## Sin motor (simulación `GamePlayer`, `ranked = false`)
 
