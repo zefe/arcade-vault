@@ -86,6 +86,9 @@ export class BloqueBusterEngine {
   private lastTime: number | null = null;
   private lastSnapshot: BloqueBusterSnapshot | null = null;
 
+  // Un solo puntero activo (el del primer pointerdown); el resto se ignora.
+  private pointerId: number | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: BloqueBusterSnapshot) => void,
@@ -107,7 +110,10 @@ export class BloqueBusterEngine {
   mount() {
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
-    this.canvas.addEventListener("mousemove", this.handleMouseMove);
+    this.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.addEventListener("pointermove", this.handlePointerMove);
+    this.canvas.addEventListener("pointerup", this.handlePointerUp);
+    this.canvas.addEventListener("pointercancel", this.handlePointerCancel);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -123,6 +129,7 @@ export class BloqueBusterEngine {
   pause() {
     // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
     this.keys = {};
+    this.pointerId = null;
     if (this.phase !== "playing") return;
     this.paused = true;
     this.emit();
@@ -154,7 +161,10 @@ export class BloqueBusterEngine {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
-    this.canvas.removeEventListener("mousemove", this.handleMouseMove);
+    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("pointermove", this.handlePointerMove);
+    this.canvas.removeEventListener("pointerup", this.handlePointerUp);
+    this.canvas.removeEventListener("pointercancel", this.handlePointerCancel);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
@@ -195,12 +205,44 @@ export class BloqueBusterEngine {
     this.keys[e.code] = false;
   };
 
-  // Coordenada del cursor convertida al mundo lógico, sea cual sea el tamaño de la CRT.
-  private handleMouseMove = (e: MouseEvent) => {
+  // Coordenada del puntero convertida al mundo lógico, sea cual sea el tamaño de la CRT.
+  private toWorldX(clientX: number): number | null {
     const rect = this.canvas.getBoundingClientRect();
-    if (rect.width === 0) return;
-    const mouseX = ((e.clientX - rect.left) * WORLD_WIDTH) / rect.width;
-    this.movePaddleTo(mouseX);
+    if (rect.width === 0) return null;
+    return ((clientX - rect.left) * WORLD_WIDTH) / rect.width;
+  }
+
+  private movePaddleToPointer(e: PointerEvent) {
+    const x = this.toWorldX(e.clientX);
+    if (x !== null) this.movePaddleTo(x);
+  }
+
+  // Dedo/lápiz: al tocar, la paleta va a la X del dedo (movePaddleTo ignora "ready" y pausa).
+  private handlePointerDown = (e: PointerEvent) => {
+    if (this.pointerId !== null || this.phase === "gameover" || this.paused)
+      return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    this.pointerId = e.pointerId;
+    this.canvas.setPointerCapture(e.pointerId);
+    this.movePaddleToPointer(e);
+  };
+
+  // El ratón mueve la paleta sin pulsar (como el antiguo mousemove); dedo/lápiz solo arrastrando.
+  private handlePointerMove = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse" && e.pointerId !== this.pointerId) return;
+    this.movePaddleToPointer(e);
+  };
+
+  // En "ready" el pointerup solo empieza la partida y se consume.
+  private handlePointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId) return;
+    this.pointerId = null;
+    if (this.phase === "ready") this.start();
+  };
+
+  private handlePointerCancel = (e: PointerEvent) => {
+    if (e.pointerId === this.pointerId) this.pointerId = null;
   };
 
   private handleBlur = () => this.pause();
@@ -275,10 +317,11 @@ export class BloqueBusterEngine {
     ball.vy = BASE_BALL_VY * speed;
   }
 
-  // Ratón: x del cursor ya convertida al mundo lógico. Solo en "playing" sin pausa.
-  private movePaddleTo(mouseX: number) {
+  // Ratón/dedo: centra la paleta en una x del mundo lógico, limitada a los bordes.
+  // Solo en "playing" sin pausa.
+  movePaddleTo(worldX: number) {
     if (this.phase !== "playing" || this.paused) return;
-    this.paddle.x = clamp(mouseX - PADDLE_W / 2, 0, PADDLE_MAX_X);
+    this.paddle.x = clamp(worldX - PADDLE_W / 2, 0, PADDLE_MAX_X);
   }
 
   private update(dt: number) {
