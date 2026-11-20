@@ -74,6 +74,8 @@ export const WALL_KICKS = [0, -1, 1, -2, 2];
 export const LINE_SCORES = [0, 100, 300, 500, 800]; // × nivel previo a la limpieza
 export const HARD_DROP_POINTS = 2; // por celda recorrida
 export const SOFT_DROP_POINTS = 1; // por fila bajada
+// Bajada mantenida (táctil, setSoftDrop): 1 fila cada 50 ms, cerca del autorepeat del SO.
+export const SOFT_DROP_INTERVAL = 0.05; // segundos
 
 // Niveles: floor(lines / LINES_PER_LEVEL) + 1
 export const LINES_PER_LEVEL = 10;

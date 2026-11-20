@@ -26,6 +26,7 @@ type PlayerShellProps = {
   onEnd: () => void;
   onRestart: () => void;
   children: ReactNode; // contenido de `.crt-screen`
+  touchControls?: ReactNode; // controles en pantalla, pintados justo debajo de `.crt`
 };
 
 export function PlayerShell({
@@ -45,6 +46,7 @@ export function PlayerShell({
   onEnd,
   onRestart,
   children,
+  touchControls,
 }: PlayerShellProps) {
   const { user } = useUser();
   // null = not edited yet; falls back to the logged-in user (hydrated after mount) or INVITADO.
@@ -70,7 +72,7 @@ export function PlayerShell({
   return (
     <div className="av-player fade-in">
       <div className="player-hud">
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+        <div className="hud-stats">
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
@@ -172,6 +174,7 @@ export function PlayerShell({
           )}
         </div>
       </div>
+      {touchControls}
 
       {over && (
         <div className="modal-bd">

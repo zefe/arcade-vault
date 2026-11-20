@@ -35,6 +35,7 @@ export class <Id>Engine {
   end(): void;     // cualquier fase → "gameover"
   restart(): void; // partida nueva directamente en "playing"
   destroy(): void; // quita listeners y cancela el RAF
+  // + API de acciones pública (p. ej. move/rotate/turn/fire/setControl): teclado y táctil la comparten
 }
 ```
 
@@ -51,6 +52,8 @@ Reglas (ver `RocasEngine`):
 - `capturesKeys()` es falso en `gameover`: el modal necesita espacios y flechas.
 - `keydown`: ignora `ctrl`/`meta`/`alt`; `preventDefault` en las teclas de juego solo si `capturesKeys()`; `P`/`Esc` alternan pausa (ignoran `repeat` y `ready`); en pausa no se procesa nada más; disparos y acciones únicas ignoran `e.repeat`.
 - `keyup`: `preventDefault` si `capturesKeys()` y siempre `keys[code] = false`.
+- **Acciones públicas** (SPEC 09): cada acción de juego es un método público con la guarda `phase === "playing" && !paused`; el teclado llama a esos métodos (nada de `KeyboardEvent` sintéticos). Modelos: `CaidaEngine.move/rotate/setSoftDrop/hardDrop`, `SerpentinaEngine.turn`, `RocasEngine.setControl/fire`, `BloqueBusterEngine.movePaddleTo`.
+- **Táctil en el canvas** (SPEC 09, obligatorio): `pointerdown`/`pointermove`/`pointerup`/`pointercancel` sobre `this.canvas`, añadidos en `mount()` y quitados en `destroy()`. Un solo puntero activo (`pointerId` del primer `pointerdown`, `setPointerCapture`); ignorado en pausa y en `gameover`; `pause()` suelta el puntero. En `ready` el `pointerup` solo llama `start()` y se consume. Gestos con `lib/games/gestures.ts` (`classifySwipe`, `SWIPE_MIN_PX` 24, `TAP_MAX_*`, `FAST_SWIPE_PX_PER_MS`); coordenadas de mundo con `(clientX - rect.left) * WORLD_WIDTH / rect.width`. Gestos activos siempre (también ratón); si el juego necesita controles simultáneos, botones en pantalla vía `touchControls` (modelo `components/rocas-touch-pad.tsx`: multitouch, salida del dedo detectada en `pointermove`).
 - Sin reinicio por tecla en `gameover`: el modal decide.
 - El canvas **no** dibuja score, vidas, nivel ni overlay de game over (lo hace React). Sí puede dibujar efectos de juego (como el `3x` de ROCAS).
 - `shadowBlur` solo en entidades principales; partículas sin glow.
@@ -81,15 +84,15 @@ Copiar la estructura de `RocasPlayer`:
 
 - `"use client"`; `INITIAL_SNAPSHOT` con las constantes del motor.
 - Motor creado en `useEffect`, `mount()` y `destroy()` en el cleanup (aguanta React Strict Mode).
-- Táctil con `useSyncExternalStore` sobre `(hover: none) and (pointer: coarse)`, `false` en servidor (sin warnings de hidratación).
+- Táctil con `const isTouch = useIsTouch()` (`lib/use-is-touch.ts`; `false` en servidor, sin warnings de hidratación). No copiar `TOUCH_QUERY`.
 - `blurFocused()` antes de cada acción de botón: si no, `Espacio` activaría el botón con foco.
 - `const [skin, setSkin] = useSkin(game.id)` (`lib/use-skin.ts`); motor creado con `SKINS[skinRef.current]` y un effect `[skin]` que llama `engine.setSkin(SKINS[skin])` (no recrea el motor).
-- Props a `PlayerShell`: `skin`, `onSkinChange={setSkin}`, `over = phase === "gameover"`, `controlsDisabled = phase === "ready"`, `crtClassName = "<id>-crt"`, `pauseHint = "PULSA P O REANUDAR PARA CONTINUAR"`.
-- Hijos: `<canvas>` y overlay de `ready` con tabla de controles (`<dl>` + `<kbd>`), `PULSA <TECLA>` y `REQUIERE TECLADO` en táctil.
+- Props a `PlayerShell`: `skin`, `onSkinChange={setSkin}`, `over = phase === "gameover"`, `controlsDisabled = phase === "ready"`, `crtClassName = "<id>-crt"`, `pauseHint = isTouch ? "PULSA REANUDAR PARA CONTINUAR" : "PULSA P O REANUDAR PARA CONTINUAR"`, y `touchControls` solo si el juego usa botones en pantalla (y `isTouch`).
+- Hijos: `<canvas>` y overlay de `ready` con tabla de controles (`<dl>` + `<kbd>`): `CONTROLS` de teclado y `PULSA <TECLA>`, o en táctil `TOUCH_CONTROLS` propios y `TOCA PARA EMPEZAR` (sin `REQUIERE TECLADO`).
 
 ## `PlayerShell`
 
-Props actuales: `game, score, lives?, lines?, level, paused, over, controlsDisabled?, crtClassName?, pauseHint?, skin?, onSkinChange?, onTogglePause, onEnd, onRestart, children`.
+Props actuales: `game, score, lives?, lines?, level, paused, over, controlsDisabled?, crtClassName?, pauseHint?, skin?, onSkinChange?, onTogglePause, onEnd, onRestart, children, touchControls?` (`touchControls` se pinta justo debajo de `.crt`).
 
 - Con `skin` + `onSkinChange` pinta los chips CLÁSICO / NEÓN / RETRO en el bisel de la CRT (`.crt-bottom`) y añade `skin-<id>` a `.crt`; sin ellas, no hay selector.
 
@@ -122,7 +125,8 @@ Si el registro ya existe, la spec solo añade una entrada.
 
 - `.crt-screen canvas` ya existe (`display: block; width: 100%; height: 100%`, sin `position` para que los pseudo-elementos CRT pinten encima).
 - `.<id>-crt`: ancho limitado por `100dvh` según la relación de aspecto del mundo. Modelo 4:3: `.rocas-crt { width: min(100%, max(320px, calc((100dvh - 290px) * 4 / 3 + 48px))) }` (290px incluye los chips de skin). Un mundo vertical (300×600) necesita otra fórmula.
-- Overlay de `ready`: modelo `.rocas-ready`, `.rocas-controls`, `.rocas-start`, `.rocas-touch` con su media query. Usar `/frontend-design` (instrucción de `CLAUDE.md`).
+- Overlay de `ready`: modelo `.rocas-ready`, `.rocas-controls`, `.rocas-start` con su media query. Añadir `.<id>-ready` a la regla `pointer-events: none` del bloque «Táctil (SPEC 09)» para que el toque de inicio llegue al canvas. Usar `/frontend-design` (instrucción de `CLAUDE.md`).
+- `.crt-screen` ya tiene `touch-action: none` y `user-select: none`; el layout vertical (≤ 560 px) ya lo resuelve `PlayerShell`. Botones en pantalla: modelo `.rocas-touch-pad` (siguen al skin con `.crt.skin-<id> + .<id>-touch-pad`).
 
 ## Checklist de adaptación de un `game.js` de referencia
 
@@ -138,4 +142,5 @@ Si el registro ya existe, la spec solo añade una entrada.
 - [ ] Colores originales → paleta neón (salvo sprites confirmados).
 - [ ] Assets → `public/games/<id>/`, cargados en el motor y liberados en `destroy()`.
 - [ ] Sonido → fuera salvo decisión contraria.
+- [ ] Solo teclado → API de acciones pública + pointer events en el canvas + overlay táctil (SPEC 09).
 - [ ] `references/` intacto (`git status` lo comprueba).

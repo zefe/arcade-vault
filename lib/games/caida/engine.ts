@@ -19,6 +19,7 @@ import {
   PREVIEW_X,
   PREVIEW_Y,
   ROWS,
+  SOFT_DROP_INTERVAL,
   SOFT_DROP_POINTS,
   WALL_KICKS,
   MAX_DT,
@@ -36,6 +37,12 @@ import {
   randomPiece,
   rotateCW,
 } from "./entities";
+import {
+  FAST_SWIPE_PX_PER_MS,
+  TAP_MAX_MS,
+  TAP_MAX_PX,
+  classifySwipe,
+} from "../gestures";
 
 export type CaidaPhase = "ready" | "playing" | "gameover";
 
@@ -59,6 +66,7 @@ const GAME_KEYS = new Set([
 const REPEATABLE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowDown"]);
 
 export class CaidaEngine {
+  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: CaidaSnapshot) => void;
@@ -75,15 +83,27 @@ export class CaidaEngine {
   private dropInterval = dropIntervalFor(1); // segundos
   private dropAccum = 0; // segundos
 
-  // keys: teclas mantenidas; justPressed: acciones pendientes para el próximo update.
+  // keys: teclas mantenidas (filtra el autorepeat tras una limpieza).
   private keys: Record<string, boolean> = {};
-  private justPressed: Record<string, boolean> = {};
+  // Bajada mantenida (setSoftDrop): el motor baja 1 fila cada SOFT_DROP_INTERVAL.
+  private softDropHeld = false;
+  private softDropAccum = 0; // segundos
+
+  // Gestos: un solo puntero activo (el del primer pointerdown); el resto se ignora.
+  // Coordenadas en px CSS; `axis` se fija al superar el umbral y no cambia hasta soltar.
+  private pointerId: number | null = null;
+  private pointerStartX = 0;
+  private pointerStartY = 0;
+  private pointerStartTime = 0; // ms (event.timeStamp)
+  private pointerColX = 0; // origen de la siguiente columna del arrastre horizontal
+  private pointerAxis: "h" | "down" | "none" | null = null;
 
   private rafId = 0;
   private lastTime: number | null = null;
   private lastSnapshot: CaidaSnapshot | null = null;
 
   constructor(canvas: HTMLCanvasElement, onChange: (s: CaidaSnapshot) => void) {
+    this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("CaidaEngine: canvas 2D no disponible");
     this.ctx = ctx;
@@ -97,6 +117,10 @@ export class CaidaEngine {
   mount() {
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
+    this.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.addEventListener("pointermove", this.handlePointerMove);
+    this.canvas.addEventListener("pointerup", this.handlePointerUp);
+    this.canvas.addEventListener("pointercancel", this.handlePointerCancel);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -112,7 +136,8 @@ export class CaidaEngine {
   pause() {
     // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
     this.keys = {};
-    this.justPressed = {};
+    this.softDropHeld = false;
+    this.pointerId = null;
     if (this.phase !== "playing") return;
     this.paused = true;
     this.emit();
@@ -134,10 +159,53 @@ export class CaidaEngine {
     this.emit();
   }
 
+  // ===== Acciones (compartidas por teclado y táctil) =====
+  // Solo actúan en "playing" sin pausa; se aplican al momento y se ven en el siguiente frame.
+
+  move(dx: -1 | 1) {
+    if (!this.canAct()) return;
+    const { shape, x, y } = this.current;
+    if (this.fits(shape, x + dx, y)) this.current.x += dx;
+  }
+
+  // Rotación horaria con wall kicks; si ninguno encaja, no rota.
+  rotate() {
+    if (!this.canAct()) return;
+    const rotated = rotateCW(this.current.shape);
+    for (const kick of WALL_KICKS) {
+      if (this.fits(rotated, this.current.x + kick, this.current.y)) {
+        this.current.shape = rotated;
+        this.current.x += kick;
+        return;
+      }
+    }
+  }
+
+  // Bajada mantenida: mientras `down`, baja 1 fila cada SOFT_DROP_INTERVAL (+1 por fila).
+  // El teclado no la usa: sigue bajando un paso por keydown/autorepeat, como antes.
+  setSoftDrop(down: boolean) {
+    if (down && !this.canAct()) return;
+    this.softDropHeld = down;
+    this.softDropAccum = 0;
+  }
+
+  // Cae hasta el fantasma (+2 por celda) y se fija.
+  hardDrop() {
+    if (!this.canAct()) return;
+    const gy = this.ghostY();
+    this.score += (gy - this.current.y) * HARD_DROP_POINTS;
+    this.current.y = gy;
+    this.lockPiece();
+  }
+
   destroy() {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
+    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("pointermove", this.handlePointerMove);
+    this.canvas.removeEventListener("pointerup", this.handlePointerUp);
+    this.canvas.removeEventListener("pointercancel", this.handlePointerCancel);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
@@ -174,7 +242,25 @@ export class CaidaEngine {
       return; // rotar y caída instantánea: una acción por pulsación
     }
     this.keys[e.code] = true;
-    this.justPressed[e.code] = true;
+
+    switch (e.code) {
+      case "ArrowLeft":
+        this.move(-1);
+        break;
+      case "ArrowRight":
+        this.move(1);
+        break;
+      case "ArrowDown":
+        if (this.canAct()) this.softDropStep();
+        break;
+      case "ArrowUp":
+      case "KeyX":
+        this.rotate();
+        break;
+      case "Space":
+        this.hardDrop();
+        break;
+    }
   };
 
   private handleKeyUp = (e: KeyboardEvent) => {
@@ -182,27 +268,92 @@ export class CaidaEngine {
     this.keys[e.code] = false;
   };
 
-  private pressed(code: string) {
-    const val = this.justPressed[code];
-    this.justPressed[code] = false;
-    return !!val;
+  // ===== Gestos (táctil, y también ratón/lápiz) =====
+  // Tap = rotar · arrastre ↔ = 1 columna por cada BLOCK del mundo · arrastre lento ↓ = bajar
+  // mientras se mantiene · swipe rápido ↓ = caída instantánea · tap en "ready" = empezar.
+  private handlePointerDown = (e: PointerEvent) => {
+    if (this.pointerId !== null || this.phase === "gameover" || this.paused)
+      return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    this.pointerId = e.pointerId;
+    this.pointerStartX = this.pointerColX = e.clientX;
+    this.pointerStartY = e.clientY;
+    this.pointerStartTime = e.timeStamp;
+    this.pointerAxis = null;
+    this.canvas.setPointerCapture(e.pointerId);
+  };
+
+  private handlePointerMove = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId || !this.canAct()) return;
+    const dx = e.clientX - this.pointerStartX;
+    const dy = e.clientY - this.pointerStartY;
+
+    if (this.pointerAxis === null) {
+      const dir = classifySwipe(dx, dy);
+      if (!dir) return;
+      if (dir === "left" || dir === "right") {
+        this.pointerAxis = "h";
+      } else if (dir === "down") {
+        const ms = Math.max(1, e.timeStamp - this.pointerStartTime);
+        if (dy / ms >= FAST_SWIPE_PX_PER_MS) {
+          this.pointerAxis = "none"; // gesto consumido hasta soltar
+          this.hardDrop();
+          return;
+        }
+        this.pointerAxis = "down";
+        this.setSoftDrop(true);
+      } else {
+        this.pointerAxis = "none"; // hacia arriba: sin acción
+      }
+    }
+
+    if (this.pointerAxis === "h") {
+      const rect = this.canvas.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const cellPx = (BLOCK * rect.width) / WORLD_WIDTH;
+      // Una llamada a move() por columna: nunca salta columnas.
+      while (e.clientX - this.pointerColX >= cellPx) {
+        this.move(1);
+        this.pointerColX += cellPx;
+      }
+      while (this.pointerColX - e.clientX >= cellPx) {
+        this.move(-1);
+        this.pointerColX -= cellPx;
+      }
+    }
+  };
+
+  // En "ready" el pointerup solo empieza la partida y se consume.
+  private handlePointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId) return;
+    const axis = this.pointerAxis;
+    this.endPointer();
+    if (this.phase === "ready") {
+      this.start();
+      return;
+    }
+    const moved = Math.hypot(
+      e.clientX - this.pointerStartX,
+      e.clientY - this.pointerStartY,
+    );
+    const ms = e.timeStamp - this.pointerStartTime;
+    if (axis === null && moved <= TAP_MAX_PX && ms <= TAP_MAX_MS) this.rotate();
+  };
+
+  private handlePointerCancel = (e: PointerEvent) => {
+    if (e.pointerId === this.pointerId) this.endPointer();
+  };
+
+  private endPointer() {
+    this.pointerId = null;
+    this.pointerAxis = null;
+    if (this.softDropHeld) this.setSoftDrop(false);
   }
 
-  // Cada acción se salta si una anterior del mismo frame terminó la partida.
-  private handleInput() {
-    // Se consumen las dos antes de combinarlas: con `||`, KeyX quedaría pendiente.
-    const up = this.pressed("ArrowUp");
-    const x = this.pressed("KeyX");
-    const actions: [boolean, () => void][] = [
-      [this.pressed("ArrowLeft"), () => this.move(-1)],
-      [this.pressed("ArrowRight"), () => this.move(1)],
-      [this.pressed("ArrowDown"), () => this.softDrop()],
-      [up || x, () => this.rotate()],
-      [this.pressed("Space"), () => this.hardDrop()],
-    ];
-    for (const [pressed, act] of actions) {
-      if (pressed && this.phase === "playing") act();
-    }
+  // Las acciones solo cuentan en partida y sin pausa (también si una anterior terminó la partida).
+  private canAct() {
+    return this.phase === "playing" && !this.paused;
   }
 
   private handleBlur = () => this.pause();
@@ -249,7 +400,8 @@ export class CaidaEngine {
     this.dropInterval = dropIntervalFor(1);
     this.dropAccum = 0;
     this.keys = {};
-    this.justPressed = {};
+    this.softDropHeld = false;
+    this.softDropAccum = 0;
     this.paused = false;
     this.phase = phase;
     this.next = randomPiece();
@@ -271,25 +423,8 @@ export class CaidaEngine {
     return !collide(this.board, shape, x, y);
   }
 
-  private move(dx: number) {
-    const { shape, x, y } = this.current;
-    if (this.fits(shape, x + dx, y)) this.current.x += dx;
-  }
-
-  // Rotación horaria con wall kicks; si ninguno encaja, no rota.
-  private rotate() {
-    const rotated = rotateCW(this.current.shape);
-    for (const kick of WALL_KICKS) {
-      if (this.fits(rotated, this.current.x + kick, this.current.y)) {
-        this.current.shape = rotated;
-        this.current.x += kick;
-        return;
-      }
-    }
-  }
-
   // Baja una fila (+1); si no puede, fija la pieza sin puntos.
-  private softDrop() {
+  private softDropStep() {
     const { shape, x, y } = this.current;
     if (this.fits(shape, x, y + 1)) {
       this.current.y++;
@@ -297,14 +432,6 @@ export class CaidaEngine {
     } else {
       this.lockPiece();
     }
-  }
-
-  // Cae hasta el fantasma (+2 por celda) y se fija.
-  private hardDrop() {
-    const gy = this.ghostY();
-    this.score += (gy - this.current.y) * HARD_DROP_POINTS;
-    this.current.y = gy;
-    this.lockPiece();
   }
 
   private ghostY() {
@@ -337,8 +464,15 @@ export class CaidaEngine {
   // Gravedad por tiempo: al superar el intervalo, el acumulador vuelve a 0 (no se resta).
   private update(dt: number) {
     if (this.phase !== "playing") return;
-    this.handleInput();
-    if (this.phase !== "playing") return; // una bajada pudo terminar la partida
+    // Con MAX_DT = SOFT_DROP_INTERVAL, como mucho una fila por frame.
+    if (this.softDropHeld) {
+      this.softDropAccum += dt;
+      if (this.softDropAccum >= SOFT_DROP_INTERVAL) {
+        this.softDropAccum -= SOFT_DROP_INTERVAL;
+        this.softDropStep();
+        if (this.phase !== "playing") return; // la bajada pudo terminar la partida
+      }
+    }
     this.dropAccum += dt;
     if (this.dropAccum >= this.dropInterval) {
       this.dropAccum = 0;

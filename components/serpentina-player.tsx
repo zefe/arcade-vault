@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import {
@@ -8,6 +8,7 @@ import {
   type SerpentinaSnapshot,
 } from "@/lib/games/serpentina/engine";
 import { SKINS } from "@/lib/games/serpentina/skins";
+import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: SerpentinaSnapshot = {
@@ -17,22 +18,13 @@ const INITIAL_SNAPSHOT: SerpentinaSnapshot = {
   level: 1,
 };
 
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
-
 const CONTROLS = [
   { keys: ["↑", "↓", "←", "→"], action: "Girar" },
   { keys: ["W", "A", "S", "D"], action: "Girar" },
   { keys: ["P", "Esc"], action: "Pausar" },
 ];
+
+const TOUCH_CONTROLS = [{ keys: ["Desliza ↑ ↓ ← →"], action: "Girar" }];
 
 // Sin esto, el botón conserva el foco y Espacio lo activaría de nuevo.
 const blurFocused = () => {
@@ -42,11 +34,7 @@ const blurFocused = () => {
 
 export function SerpentinaPlayer({ game }: { game: Game }) {
   // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const [skin, setSkin] = useSkin(game.id);
   // El engine se crea una vez; el skin vigente se lee del ref y luego se cambia en caliente.
   const skinRef = useRef(skin);
@@ -103,7 +91,11 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
       over={snapshot.phase === "gameover"}
       controlsDisabled={snapshot.phase === "ready"}
       crtClassName="serpentina-crt"
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -115,7 +107,7 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
         <div className="crt-content serpentina-ready">
           <div>
             <dl className="serpentina-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={keys.join("")}>
                   <dt>
                     {keys.map((key) => (
@@ -127,13 +119,8 @@ export function SerpentinaPlayer({ game }: { game: Game }) {
               ))}
             </dl>
             <div className="pixel neon-yellow serpentina-start">
-              PULSA ESPACIO
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
             </div>
-            {isTouch && (
-              <div className="pixel neon-magenta serpentina-touch">
-                REQUIERE TECLADO
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -33,14 +33,32 @@ export type RocasSnapshot = {
 
 const GAME_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "Space"]);
 
+export type RocasControl = "left" | "right" | "thrust";
+
+const CONTROL_KEYS: Record<string, RocasControl> = {
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  ArrowUp: "thrust",
+};
+
+const NO_CONTROLS: Record<RocasControl, boolean> = {
+  left: false,
+  right: false,
+  thrust: false,
+};
+
 export class RocasEngine {
+  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: RocasSnapshot) => void;
   private palette: RocasPalette;
 
-  private keys: Record<string, boolean> = {};
-  private justPressed: Record<string, boolean> = {};
+  // controls: controles mantenidos (teclado o botones táctiles); fireQueued: disparo pendiente.
+  private controls = { ...NO_CONTROLS };
+  private fireQueued = false;
+  // Toque de inicio en el canvas: un solo puntero activo.
+  private pointerId: number | null = null;
 
   private ship = new Ship();
   private bullets: Bullet[] = [];
@@ -66,6 +84,7 @@ export class RocasEngine {
     onChange: (s: RocasSnapshot) => void,
     palette: RocasPalette,
   ) {
+    this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("RocasEngine: canvas 2D no disponible");
     this.ctx = ctx;
@@ -80,6 +99,9 @@ export class RocasEngine {
   mount() {
     window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("keyup", this.handleKeyUp);
+    this.canvas.addEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.addEventListener("pointerup", this.handlePointerUp);
+    this.canvas.addEventListener("pointercancel", this.handlePointerCancel);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -93,9 +115,10 @@ export class RocasEngine {
   }
 
   pause() {
-    // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
-    this.keys = {};
-    this.justPressed = {};
+    // Se limpia en cualquier fase: una tecla o botón soltado sin foco no debe quedar activo.
+    this.controls = { ...NO_CONTROLS };
+    this.fireQueued = false;
+    this.pointerId = null;
     if (this.phase !== "playing" && this.phase !== "dead") return;
     this.paused = true;
     this.emit();
@@ -117,6 +140,24 @@ export class RocasEngine {
     this.emit();
   }
 
+  // ===== Acciones (compartidas por teclado y botones táctiles) =====
+
+  // Control mantenido. Pulsar se ignora en pausa, en "ready" y en "gameover"; soltar siempre vale.
+  setControl(control: RocasControl, down: boolean) {
+    if (
+      down &&
+      (this.paused || this.phase === "ready" || this.phase === "gameover")
+    )
+      return;
+    this.controls[control] = down;
+  }
+
+  // Un disparo, como pulsar Espacio una vez. Solo en "playing" sin pausa.
+  fire() {
+    if (this.phase !== "playing" || this.paused) return;
+    this.fireQueued = true;
+  }
+
   // Cambia el skin en caliente: no toca el estado de la partida.
   setSkin(palette: RocasPalette) {
     this.palette = palette;
@@ -127,6 +168,9 @@ export class RocasEngine {
     cancelAnimationFrame(this.rafId);
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
+    this.canvas.removeEventListener("pointerdown", this.handlePointerDown);
+    this.canvas.removeEventListener("pointerup", this.handlePointerUp);
+    this.canvas.removeEventListener("pointercancel", this.handlePointerCancel);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
@@ -154,15 +198,37 @@ export class RocasEngine {
     if (e.code === "Space") {
       if (e.repeat) return;
       if (this.phase === "ready") this.start();
-      else if (this.phase === "playing") this.justPressed.Space = true;
+      else this.fire();
       return;
     }
-    if (GAME_KEYS.has(e.code)) this.keys[e.code] = true;
+    const control = CONTROL_KEYS[e.code];
+    if (control) this.setControl(control, true);
   };
 
   private handleKeyUp = (e: KeyboardEvent) => {
     if (this.capturesKeys() && GAME_KEYS.has(e.code)) e.preventDefault();
-    this.keys[e.code] = false;
+    const control = CONTROL_KEYS[e.code];
+    if (control) this.setControl(control, false);
+  };
+
+  // Canvas: solo el toque de inicio en "ready" (los controles van en botones bajo la CRT).
+  private handlePointerDown = (e: PointerEvent) => {
+    if (this.pointerId !== null || this.phase !== "ready") return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    this.pointerId = e.pointerId;
+    this.canvas.setPointerCapture(e.pointerId);
+  };
+
+  // El pointerup solo empieza la partida y se consume.
+  private handlePointerUp = (e: PointerEvent) => {
+    if (e.pointerId !== this.pointerId) return;
+    this.pointerId = null;
+    this.start();
+  };
+
+  private handlePointerCancel = (e: PointerEvent) => {
+    if (e.pointerId === this.pointerId) this.pointerId = null;
   };
 
   private handleBlur = () => this.pause();
@@ -207,8 +273,8 @@ export class RocasEngine {
     this.powerUps = [];
     this.powerUpSpawned = false;
     this.killsSinceSpawn = 0;
-    this.keys = {};
-    this.justPressed = {};
+    this.controls = { ...NO_CONTROLS };
+    this.fireQueued = false;
     this.score = 0;
     this.lives = STARTING_LIVES;
     this.level = 1;
@@ -260,12 +326,6 @@ export class RocasEngine {
     }
   }
 
-  private pressed(code: string) {
-    const val = this.justPressed[code];
-    this.justPressed[code] = false;
-    return val;
-  }
-
   private updateParticles(dt: number) {
     this.particles.forEach((p) => p.update(dt));
     this.particles = this.particles.filter((p) => !p.dead);
@@ -294,15 +354,12 @@ export class RocasEngine {
       return;
     }
 
-    if (this.pressed("Space")) {
+    if (this.fireQueued) {
+      this.fireQueued = false;
       this.bullets.push(...this.ship.tryShoot());
     }
 
-    this.ship.update(dt, {
-      left: !!this.keys.ArrowLeft,
-      right: !!this.keys.ArrowRight,
-      thrust: !!this.keys.ArrowUp,
-    });
+    this.ship.update(dt, this.controls);
     this.bullets.forEach((b) => b.update(dt));
     this.asteroids.forEach((a) => a.update(dt));
     this.particles.forEach((p) => p.update(dt));

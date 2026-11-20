@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import { CaidaEngine, type CaidaSnapshot } from "@/lib/games/caida/engine";
+import { useIsTouch } from "@/lib/use-is-touch";
 
 const INITIAL_SNAPSHOT: CaidaSnapshot = {
   phase: "ready",
@@ -13,23 +14,19 @@ const INITIAL_SNAPSHOT: CaidaSnapshot = {
   level: 1,
 };
 
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
-
 const CONTROLS = [
   { keys: ["←", "→"], action: "Mover" },
   { keys: ["↑", "X"], action: "Rotar" },
   { keys: ["↓"], action: "Bajar" },
   { keys: ["Espacio"], action: "Caída" },
   { keys: ["P"], action: "Pausar" },
+];
+
+const TOUCH_CONTROLS = [
+  { keys: ["Toca"], action: "Rotar" },
+  { keys: ["Arrastra ↔"], action: "Mover" },
+  { keys: ["Arrastra ↓"], action: "Bajar" },
+  { keys: ["Desliza ↓ rápido"], action: "Caída" },
 ];
 
 // Sin esto, el botón conserva el foco y Espacio lo activaría en vez de soltar la pieza.
@@ -39,11 +36,7 @@ const blurFocused = () => {
 };
 
 export function CaidaPlayer({ game }: { game: Game }) {
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CaidaEngine | null>(null);
   const [snapshot, setSnapshot] = useState<CaidaSnapshot>(INITIAL_SNAPSHOT);
@@ -86,7 +79,11 @@ export function CaidaPlayer({ game }: { game: Game }) {
       over={snapshot.phase === "gameover"}
       controlsDisabled={snapshot.phase === "ready"}
       crtClassName="caida-crt"
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -96,7 +93,7 @@ export function CaidaPlayer({ game }: { game: Game }) {
         <div className="crt-content caida-ready">
           <div>
             <dl className="caida-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={action}>
                   <dt>
                     {keys.map((key) => (
@@ -107,12 +104,9 @@ export function CaidaPlayer({ game }: { game: Game }) {
                 </div>
               ))}
             </dl>
-            <div className="pixel neon-magenta caida-start">PULSA ESPACIO</div>
-            {isTouch && (
-              <div className="pixel neon-yellow caida-touch">
-                REQUIERE TECLADO
-              </div>
-            )}
+            <div className="pixel neon-magenta caida-start">
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
+            </div>
           </div>
         </div>
       )}

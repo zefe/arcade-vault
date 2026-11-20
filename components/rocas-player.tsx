@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
+import { RocasTouchPad } from "@/components/rocas-touch-pad";
 import type { Game } from "@/lib/games";
 import { STARTING_LIVES } from "@/lib/games/rocas/constants";
 import { RocasEngine, type RocasSnapshot } from "@/lib/games/rocas/engine";
 import { SKINS } from "@/lib/games/rocas/skins";
+import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: RocasSnapshot = {
@@ -16,22 +18,17 @@ const INITIAL_SNAPSHOT: RocasSnapshot = {
   level: 1,
 };
 
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
-
 const CONTROLS = [
   { keys: ["←", "→"], action: "Rotar" },
   { keys: ["↑"], action: "Propulsar" },
   { keys: ["Espacio"], action: "Disparar" },
   { keys: ["P"], action: "Pausar" },
+];
+
+const TOUCH_CONTROLS = [
+  { keys: ["←", "→"], action: "Rotar" },
+  { keys: ["↑"], action: "Propulsar" },
+  { keys: ["FUEGO"], action: "Disparar" },
 ];
 
 // Sin esto, el botón conserva el foco y Espacio lo activaría en vez de disparar.
@@ -41,11 +38,7 @@ const blurFocused = () => {
 };
 
 export function RocasPlayer({ game }: { game: Game }) {
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<RocasEngine | null>(null);
   const [snapshot, setSnapshot] = useState<RocasSnapshot>(INITIAL_SNAPSHOT);
@@ -101,7 +94,26 @@ export function RocasPlayer({ game }: { game: Game }) {
       crtClassName="rocas-crt"
       skin={skin}
       onSkinChange={setSkin}
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
+      touchControls={
+        isTouch && (
+          <RocasTouchPad
+            onControl={(control, down) =>
+              engineRef.current?.setControl(control, down)
+            }
+            onFire={() => engineRef.current?.fire()}
+            disabled={
+              snapshot.phase === "ready" ||
+              snapshot.phase === "gameover" ||
+              snapshot.paused
+            }
+          />
+        )
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -111,7 +123,7 @@ export function RocasPlayer({ game }: { game: Game }) {
         <div className="crt-content rocas-ready">
           <div>
             <dl className="rocas-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={action}>
                   <dt>
                     {keys.map((key) => (
@@ -122,12 +134,9 @@ export function RocasPlayer({ game }: { game: Game }) {
                 </div>
               ))}
             </dl>
-            <div className="pixel neon-yellow rocas-start">PULSA ESPACIO</div>
-            {isTouch && (
-              <div className="pixel neon-magenta rocas-touch">
-                REQUIERE TECLADO
-              </div>
-            )}
+            <div className="pixel neon-yellow rocas-start">
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
+            </div>
           </div>
         </div>
       )}

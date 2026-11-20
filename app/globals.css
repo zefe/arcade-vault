@@ -1040,6 +1040,11 @@ a {
   margin-bottom: 18px;
   flex-wrap: wrap;
 }
+.hud-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
 .hud-stat {
   display: flex;
   flex-direction: column;
@@ -1167,6 +1172,74 @@ a {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* ===== Táctil (SPEC 09) ===== */
+/* Los gestos del canvas no deben hacer scroll, zoom ni seleccionar texto. */
+.crt-screen,
+.crt-screen canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.av-player {
+  overscroll-behavior: none;
+}
+/* Sin retardo de doble toque ni zoom en los botones del HUD. */
+.player-hud .btn,
+.skin-chip {
+  touch-action: manipulation;
+}
+/* El toque de inicio debe llegar al canvas a través del overlay `ready`. */
+.rocas-ready,
+.caida-ready,
+.bloque-buster-ready,
+.serpentina-ready {
+  pointer-events: none;
+}
+
+/* Reproductor en vertical: CRT a todo el ancho (4:3), HUD compacto, sin scroll horizontal. */
+@media (max-width: 560px) {
+  .av-player {
+    margin: 12px auto;
+    overflow-x: clip;
+  }
+  .player-hud {
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .hud-stats {
+    gap: 8px 16px;
+  }
+  .hud-stat .l {
+    font-size: 9px;
+  }
+  .hud-stat .v {
+    font-size: 12px;
+  }
+  .hud-actions {
+    width: 100%;
+    gap: 8px;
+  }
+  .hud-actions .btn {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 9px;
+  }
+  .crt {
+    border-radius: 16px;
+    padding: 10px;
+  }
+  .crt-screen {
+    border-radius: 8px / 18px;
+  }
+  .crt-bottom {
+    margin-top: 10px;
+    padding: 0 4px;
+  }
 }
 
 /* ===== Skins de juego: .crt.skin-<id> (lib/skins.ts) ===== */
@@ -1328,10 +1401,6 @@ a {
   font-size: 16px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.rocas-touch {
-  margin-top: 16px;
-  font-size: 10px;
-}
 @media (max-width: 760px) {
   .rocas-ready {
     align-items: center;
@@ -1355,14 +1424,136 @@ a {
   .rocas-start {
     font-size: 11px;
   }
-  .rocas-touch {
-    margin-top: 6px;
-    font-size: 8px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .rocas-start {
     animation: none;
+  }
+}
+
+/* ROCAS: botonera táctil bajo la CRT (solo con useIsTouch). Panel de máquina arcade:
+   teclas de dirección a la izquierda; propulsar + FUEGO (botón redondo) a la derecha. */
+.rocas-touch-pad {
+  --pad-key: var(--cyan);
+  --pad-key-rgb: 0, 245, 255;
+  --pad-fire: var(--magenta);
+  --pad-fire-rgb: 255, 0, 110;
+  --phosphor: #ffb000;
+  --phosphor-rgb: 255, 176, 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 0 4px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.rocas-pad-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rocas-pad-btn {
+  display: grid;
+  place-items: center;
+  font-family: var(--pixel);
+  color: var(--pad-key);
+  background: var(--bg-3);
+  border: 2px solid rgba(var(--pad-key-rgb), 0.55);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition:
+    transform 60ms,
+    box-shadow 60ms,
+    background 60ms;
+}
+.rocas-pad-dir {
+  width: 68px;
+  height: 64px;
+  border-radius: 10px;
+  font-size: 18px;
+  box-shadow:
+    0 5px 0 #1b1b22,
+    0 0 10px rgba(var(--pad-key-rgb), 0.18);
+}
+.rocas-pad-fire {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: radial-gradient(
+    circle at 38% 32%,
+    rgba(var(--pad-fire-rgb), 0.95),
+    rgba(var(--pad-fire-rgb), 0.55) 60%,
+    rgba(var(--pad-fire-rgb), 0.35)
+  );
+  border-color: var(--pad-fire);
+  box-shadow:
+    0 6px 0 #3a0019,
+    0 0 18px rgba(var(--pad-fire-rgb), 0.45);
+}
+/* Pulsado: la tecla se hunde y se enciende. */
+.rocas-pad-dir[data-active] {
+  transform: translateY(4px);
+  background: rgba(var(--pad-key-rgb), 0.16);
+  box-shadow:
+    0 1px 0 #1b1b22,
+    0 0 16px rgba(var(--pad-key-rgb), 0.55);
+}
+.rocas-pad-fire[data-active] {
+  transform: translateY(5px);
+  box-shadow:
+    0 1px 0 #3a0019,
+    0 0 28px rgba(var(--pad-fire-rgb), 0.8);
+}
+.rocas-touch-pad[data-disabled] .rocas-pad-btn {
+  opacity: 0.4;
+}
+/* Skins: la botonera sigue al skin de la CRT, su hermana anterior. */
+.crt.skin-clasico + .rocas-touch-pad .rocas-pad-dir {
+  box-shadow: 0 5px 0 #1b1b22;
+}
+.crt.skin-clasico + .rocas-touch-pad .rocas-pad-dir[data-active] {
+  box-shadow: 0 1px 0 #1b1b22;
+}
+.crt.skin-clasico + .rocas-touch-pad .rocas-pad-fire {
+  background: var(--pad-fire);
+  box-shadow: 0 6px 0 #3a0019;
+}
+.crt.skin-clasico + .rocas-touch-pad .rocas-pad-fire[data-active] {
+  box-shadow: 0 1px 0 #3a0019;
+}
+.crt.skin-retro + .rocas-touch-pad {
+  --pad-key: var(--phosphor);
+  --pad-key-rgb: var(--phosphor-rgb);
+  --pad-fire: var(--phosphor);
+  --pad-fire-rgb: var(--phosphor-rgb);
+}
+.crt.skin-retro + .rocas-touch-pad .rocas-pad-fire {
+  color: #000;
+}
+@media (max-width: 380px) {
+  .rocas-pad-cluster {
+    gap: 8px;
+  }
+  .rocas-pad-dir {
+    width: 58px;
+    height: 58px;
+  }
+  .rocas-pad-fire {
+    width: 74px;
+    height: 74px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rocas-pad-btn {
+    transition: none;
   }
 }
 
@@ -1423,10 +1614,6 @@ a {
   font-size: 14px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.caida-touch {
-  margin-top: 16px;
-  font-size: 10px;
-}
 /* En pantallas estrechas la columna no cabe: el overlay ocupa toda la CRT. */
 @media (max-width: 760px) {
   .caida-ready {
@@ -1451,10 +1638,6 @@ a {
   }
   .caida-start {
     font-size: 11px;
-  }
-  .caida-touch {
-    margin-top: 6px;
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1522,10 +1705,6 @@ a {
   font-size: 16px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.bloque-buster-touch {
-  margin-top: 16px;
-  font-size: 10px;
-}
 /* En pantallas estrechas la franja no cabe: el overlay ocupa toda la CRT. */
 @media (max-width: 760px) {
   .bloque-buster-ready {
@@ -1550,10 +1729,6 @@ a {
   }
   .bloque-buster-start {
     font-size: 11px;
-  }
-  .bloque-buster-touch {
-    margin-top: 6px;
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1622,10 +1797,6 @@ a {
   font-size: 16px;
   animation: blink 1.2s steps(1, end) infinite;
 }
-.serpentina-touch {
-  margin-top: 12px;
-  font-size: 10px;
-}
 /* En pantallas estrechas la franja no cabe: el overlay ocupa toda la CRT. */
 @media (max-width: 760px) {
   .serpentina-ready {
@@ -1650,10 +1821,6 @@ a {
   }
   .serpentina-start {
     font-size: 11px;
-  }
-  .serpentina-touch {
-    margin-top: 6px;
-    font-size: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

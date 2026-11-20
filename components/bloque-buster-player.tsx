@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import { START_LIVES } from "@/lib/games/bloque-buster/constants";
@@ -9,6 +9,7 @@ import {
   type BloqueBusterSnapshot,
 } from "@/lib/games/bloque-buster/engine";
 import { SKINS } from "@/lib/games/bloque-buster/skins";
+import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: BloqueBusterSnapshot = {
@@ -19,22 +20,13 @@ const INITIAL_SNAPSHOT: BloqueBusterSnapshot = {
   level: 1,
 };
 
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
-
 const CONTROLS = [
   { keys: ["←", "→"], action: "Mover la paleta" },
   { keys: ["Ratón"], action: "Mover la paleta" },
   { keys: ["P", "Esc"], action: "Pausar" },
 ];
+
+const TOUCH_CONTROLS = [{ keys: ["Arrastra"], action: "Mover la paleta" }];
 
 // Sin esto, el botón conserva el foco y Espacio lo activaría de nuevo.
 const blurFocused = () => {
@@ -44,11 +36,7 @@ const blurFocused = () => {
 
 export function BloqueBusterPlayer({ game }: { game: Game }) {
   // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<BloqueBusterEngine | null>(null);
   const [snapshot, setSnapshot] =
@@ -106,7 +94,11 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
       crtClassName="bloque-buster-crt"
       skin={skin}
       onSkinChange={setSkin}
-      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
+      pauseHint={
+        isTouch
+          ? "PULSA REANUDAR PARA CONTINUAR"
+          : "PULSA P O REANUDAR PARA CONTINUAR"
+      }
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -116,7 +108,7 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
         <div className="crt-content bloque-buster-ready">
           <div>
             <dl className="bloque-buster-controls">
-              {CONTROLS.map(({ keys, action }) => (
+              {(isTouch ? TOUCH_CONTROLS : CONTROLS).map(({ keys, action }) => (
                 <div key={keys.join("")}>
                   <dt>
                     {keys.map((key) => (
@@ -128,13 +120,8 @@ export function BloqueBusterPlayer({ game }: { game: Game }) {
               ))}
             </dl>
             <div className="pixel neon-yellow bloque-buster-start">
-              PULSA ESPACIO
+              {isTouch ? "TOCA PARA EMPEZAR" : "PULSA ESPACIO"}
             </div>
-            {isTouch && (
-              <div className="pixel neon-magenta bloque-buster-touch">
-                REQUIERE TECLADO O RATÓN
-              </div>
-            )}
           </div>
         </div>
       )}
