@@ -19,6 +19,7 @@ import {
   PREVIEW_X,
   PREVIEW_Y,
   ROWS,
+  SOFT_DROP_INTERVAL,
   SOFT_DROP_POINTS,
   WALL_KICKS,
   MAX_DT,
@@ -75,9 +76,11 @@ export class CaidaEngine {
   private dropInterval = dropIntervalFor(1); // segundos
   private dropAccum = 0; // segundos
 
-  // keys: teclas mantenidas; justPressed: acciones pendientes para el próximo update.
+  // keys: teclas mantenidas (filtra el autorepeat tras una limpieza).
   private keys: Record<string, boolean> = {};
-  private justPressed: Record<string, boolean> = {};
+  // Bajada mantenida (setSoftDrop): el motor baja 1 fila cada SOFT_DROP_INTERVAL.
+  private softDropHeld = false;
+  private softDropAccum = 0; // segundos
 
   private rafId = 0;
   private lastTime: number | null = null;
@@ -112,7 +115,7 @@ export class CaidaEngine {
   pause() {
     // Se limpia en cualquier fase: una tecla soltada sin foco no debe quedar activa.
     this.keys = {};
-    this.justPressed = {};
+    this.softDropHeld = false;
     if (this.phase !== "playing") return;
     this.paused = true;
     this.emit();
@@ -132,6 +135,45 @@ export class CaidaEngine {
   restart() {
     this.initGame("playing");
     this.emit();
+  }
+
+  // ===== Acciones (compartidas por teclado y táctil) =====
+  // Solo actúan en "playing" sin pausa; se aplican al momento y se ven en el siguiente frame.
+
+  move(dx: -1 | 1) {
+    if (!this.canAct()) return;
+    const { shape, x, y } = this.current;
+    if (this.fits(shape, x + dx, y)) this.current.x += dx;
+  }
+
+  // Rotación horaria con wall kicks; si ninguno encaja, no rota.
+  rotate() {
+    if (!this.canAct()) return;
+    const rotated = rotateCW(this.current.shape);
+    for (const kick of WALL_KICKS) {
+      if (this.fits(rotated, this.current.x + kick, this.current.y)) {
+        this.current.shape = rotated;
+        this.current.x += kick;
+        return;
+      }
+    }
+  }
+
+  // Bajada mantenida: mientras `down`, baja 1 fila cada SOFT_DROP_INTERVAL (+1 por fila).
+  // El teclado no la usa: sigue bajando un paso por keydown/autorepeat, como antes.
+  setSoftDrop(down: boolean) {
+    if (down && !this.canAct()) return;
+    this.softDropHeld = down;
+    this.softDropAccum = 0;
+  }
+
+  // Cae hasta el fantasma (+2 por celda) y se fija.
+  hardDrop() {
+    if (!this.canAct()) return;
+    const gy = this.ghostY();
+    this.score += (gy - this.current.y) * HARD_DROP_POINTS;
+    this.current.y = gy;
+    this.lockPiece();
   }
 
   destroy() {
@@ -174,7 +216,25 @@ export class CaidaEngine {
       return; // rotar y caída instantánea: una acción por pulsación
     }
     this.keys[e.code] = true;
-    this.justPressed[e.code] = true;
+
+    switch (e.code) {
+      case "ArrowLeft":
+        this.move(-1);
+        break;
+      case "ArrowRight":
+        this.move(1);
+        break;
+      case "ArrowDown":
+        if (this.canAct()) this.softDropStep();
+        break;
+      case "ArrowUp":
+      case "KeyX":
+        this.rotate();
+        break;
+      case "Space":
+        this.hardDrop();
+        break;
+    }
   };
 
   private handleKeyUp = (e: KeyboardEvent) => {
@@ -182,27 +242,9 @@ export class CaidaEngine {
     this.keys[e.code] = false;
   };
 
-  private pressed(code: string) {
-    const val = this.justPressed[code];
-    this.justPressed[code] = false;
-    return !!val;
-  }
-
-  // Cada acción se salta si una anterior del mismo frame terminó la partida.
-  private handleInput() {
-    // Se consumen las dos antes de combinarlas: con `||`, KeyX quedaría pendiente.
-    const up = this.pressed("ArrowUp");
-    const x = this.pressed("KeyX");
-    const actions: [boolean, () => void][] = [
-      [this.pressed("ArrowLeft"), () => this.move(-1)],
-      [this.pressed("ArrowRight"), () => this.move(1)],
-      [this.pressed("ArrowDown"), () => this.softDrop()],
-      [up || x, () => this.rotate()],
-      [this.pressed("Space"), () => this.hardDrop()],
-    ];
-    for (const [pressed, act] of actions) {
-      if (pressed && this.phase === "playing") act();
-    }
+  // Las acciones solo cuentan en partida y sin pausa (también si una anterior terminó la partida).
+  private canAct() {
+    return this.phase === "playing" && !this.paused;
   }
 
   private handleBlur = () => this.pause();
@@ -249,7 +291,8 @@ export class CaidaEngine {
     this.dropInterval = dropIntervalFor(1);
     this.dropAccum = 0;
     this.keys = {};
-    this.justPressed = {};
+    this.softDropHeld = false;
+    this.softDropAccum = 0;
     this.paused = false;
     this.phase = phase;
     this.next = randomPiece();
@@ -271,25 +314,8 @@ export class CaidaEngine {
     return !collide(this.board, shape, x, y);
   }
 
-  private move(dx: number) {
-    const { shape, x, y } = this.current;
-    if (this.fits(shape, x + dx, y)) this.current.x += dx;
-  }
-
-  // Rotación horaria con wall kicks; si ninguno encaja, no rota.
-  private rotate() {
-    const rotated = rotateCW(this.current.shape);
-    for (const kick of WALL_KICKS) {
-      if (this.fits(rotated, this.current.x + kick, this.current.y)) {
-        this.current.shape = rotated;
-        this.current.x += kick;
-        return;
-      }
-    }
-  }
-
   // Baja una fila (+1); si no puede, fija la pieza sin puntos.
-  private softDrop() {
+  private softDropStep() {
     const { shape, x, y } = this.current;
     if (this.fits(shape, x, y + 1)) {
       this.current.y++;
@@ -297,14 +323,6 @@ export class CaidaEngine {
     } else {
       this.lockPiece();
     }
-  }
-
-  // Cae hasta el fantasma (+2 por celda) y se fija.
-  private hardDrop() {
-    const gy = this.ghostY();
-    this.score += (gy - this.current.y) * HARD_DROP_POINTS;
-    this.current.y = gy;
-    this.lockPiece();
   }
 
   private ghostY() {
@@ -337,8 +355,15 @@ export class CaidaEngine {
   // Gravedad por tiempo: al superar el intervalo, el acumulador vuelve a 0 (no se resta).
   private update(dt: number) {
     if (this.phase !== "playing") return;
-    this.handleInput();
-    if (this.phase !== "playing") return; // una bajada pudo terminar la partida
+    // Con MAX_DT = SOFT_DROP_INTERVAL, como mucho una fila por frame.
+    if (this.softDropHeld) {
+      this.softDropAccum += dt;
+      if (this.softDropAccum >= SOFT_DROP_INTERVAL) {
+        this.softDropAccum -= SOFT_DROP_INTERVAL;
+        this.softDropStep();
+        if (this.phase !== "playing") return; // la bajada pudo terminar la partida
+      }
+    }
     this.dropAccum += dt;
     if (this.dropAccum >= this.dropInterval) {
       this.dropAccum = 0;
