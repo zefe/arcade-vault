@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import { STARTING_LIVES } from "@/lib/games/rocas/constants";
 import { RocasEngine, type RocasSnapshot } from "@/lib/games/rocas/engine";
 import { SKINS } from "@/lib/games/rocas/skins";
+import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: RocasSnapshot = {
@@ -15,17 +16,6 @@ const INITIAL_SNAPSHOT: RocasSnapshot = {
   lives: STARTING_LIVES,
   level: 1,
 };
-
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
 
 const CONTROLS = [
   { keys: ["←", "→"], action: "Rotar" },
@@ -41,11 +31,7 @@ const blurFocused = () => {
 };
 
 export function RocasPlayer({ game }: { game: Game }) {
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<RocasEngine | null>(null);
   const [snapshot, setSnapshot] = useState<RocasSnapshot>(INITIAL_SNAPSHOT);

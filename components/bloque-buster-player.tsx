@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import { START_LIVES } from "@/lib/games/bloque-buster/constants";
@@ -9,6 +9,7 @@ import {
   type BloqueBusterSnapshot,
 } from "@/lib/games/bloque-buster/engine";
 import { SKINS } from "@/lib/games/bloque-buster/skins";
+import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: BloqueBusterSnapshot = {
@@ -18,17 +19,6 @@ const INITIAL_SNAPSHOT: BloqueBusterSnapshot = {
   lives: START_LIVES,
   level: 1,
 };
-
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
 
 const CONTROLS = [
   { keys: ["←", "→"], action: "Mover la paleta" },
@@ -44,11 +34,7 @@ const blurFocused = () => {
 
 export function BloqueBusterPlayer({ game }: { game: Game }) {
   // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<BloqueBusterEngine | null>(null);
   const [snapshot, setSnapshot] =

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import {
@@ -8,6 +8,7 @@ import {
   type SerpentinaSnapshot,
 } from "@/lib/games/serpentina/engine";
 import { SKINS } from "@/lib/games/serpentina/skins";
+import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
 const INITIAL_SNAPSHOT: SerpentinaSnapshot = {
@@ -16,17 +17,6 @@ const INITIAL_SNAPSHOT: SerpentinaSnapshot = {
   score: 0,
   level: 1,
 };
-
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
 
 const CONTROLS = [
   { keys: ["↑", "↓", "←", "→"], action: "Girar" },
@@ -42,11 +32,7 @@ const blurFocused = () => {
 
 export function SerpentinaPlayer({ game }: { game: Game }) {
   // Sin aviso en el servidor: el valor real llega tras hidratar, sin mismatch.
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const [skin, setSkin] = useSkin(game.id);
   // El engine se crea una vez; el skin vigente se lee del ref y luego se cambia en caliente.
   const skinRef = useRef(skin);

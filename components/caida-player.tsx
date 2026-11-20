@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlayerShell } from "@/components/player-shell";
 import type { Game } from "@/lib/games";
 import { CaidaEngine, type CaidaSnapshot } from "@/lib/games/caida/engine";
+import { useIsTouch } from "@/lib/use-is-touch";
 
 const INITIAL_SNAPSHOT: CaidaSnapshot = {
   phase: "ready",
@@ -12,17 +13,6 @@ const INITIAL_SNAPSHOT: CaidaSnapshot = {
   lines: 0,
   level: 1,
 };
-
-const TOUCH_QUERY = "(hover: none) and (pointer: coarse)";
-
-function subscribeToTouch(onChange: () => void) {
-  const query = window.matchMedia(TOUCH_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-const getIsTouch = () => window.matchMedia(TOUCH_QUERY).matches;
-const getIsTouchOnServer = () => false;
 
 const CONTROLS = [
   { keys: ["←", "→"], action: "Mover" },
@@ -39,11 +29,7 @@ const blurFocused = () => {
 };
 
 export function CaidaPlayer({ game }: { game: Game }) {
-  const isTouch = useSyncExternalStore(
-    subscribeToTouch,
-    getIsTouch,
-    getIsTouchOnServer,
-  );
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CaidaEngine | null>(null);
   const [snapshot, setSnapshot] = useState<CaidaSnapshot>(INITIAL_SNAPSHOT);
