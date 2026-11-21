@@ -9,7 +9,7 @@ Estados: [ ] pendiente · [~] en spec/impl · [x] implementado · [-] descartado
 
 ## Pendientes
 
-- [ ] S-001 RANARIA (`ranaria`, ARCADE, teclado/swipe, M) — cruza carriles de tráfico y troncos por rejilla hasta los nenúfares contra reloj; puntos por avance, nenúfar y tiempo sobrante · encaje 33/35 · sugerido 2026-11-17
+- [ ] S-001 RANARIA (`ranaria`, ARCADE, teclado/swipe, M) · **en curso** (SPEC JAM ranaria 01, 2026-11-20) — cruza carriles de tráfico y troncos por rejilla hasta los nenúfares contra reloj; puntos por avance, nenúfar y tiempo sobrante · encaje 33/35 · sugerido 2026-11-17
 - [ ] S-002 GLOTÓN (`gloton`, ARCADE, teclado/swipe, L) — laberinto de puntos con 4 espectros y píldora que invierte roles; laberinto y IA propios, no clon · encaje 30/35 · sugerido 2026-11-17
 - [ ] S-003 INVASORES (`invasores`, SHOOTER, teclado/ratón, M) — oleadas en formación que descienden, cañón horizontal, escudos; patrones de oleada originales · encaje 29/35 · sugerido 2026-11-17
 - [ ] S-004 ÓRBITA (`orbita`, ARCADE, 1 botón/táctil, S) — nave en pozo gravitatorio; impulso para cambiar de órbita, orbes de energía, escombros crecientes · encaje 34/35 · sugerido 2026-11-17

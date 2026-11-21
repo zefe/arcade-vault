@@ -2,7 +2,7 @@
 
 Juegos con motor real (`lib/games/<id>/`), registrados en `GAME_PLAYERS` (`components/game-players.ts`) y con `ranked = true` en la tabla `games` (leaderboard público).
 
-Fuente: tabla `games` en Supabase + código, consultado el 2026-11-19.
+Fuente: tabla `games` en Supabase + código, consultado el 2026-11-20.
 
 | #   | ID              | Título        | Categoría | Controles        | Color   | Spec |
 | --- | --------------- | ------------- | --------- | ---------------- | ------- | ---- |
@@ -10,6 +10,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-19.
 | 2   | `caida`         | CAÍDA         | PUZZLE    | TECLADO / TÁCTIL         | magenta | 06, 09 |
 | 3   | `bloque-buster` | BLOQUE BUSTER | ARCADE    | TECLADO / RATÓN / TÁCTIL | cyan    | 07, 09 |
 | 4   | `serpentina`    | SERPENTINA    | ARCADE    | TECLADO / TÁCTIL         | green   | 08, 09 |
+| 5   | `ranaria`       | RANARIA       | ARCADE    | TECLADO                  | green   | JAM ranaria 01 |
 
 ## ROCAS (`rocas`)
 
@@ -46,6 +47,15 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-19.
 - **Skins:** clásico (default) · neón · retro verde `#33ff66` (`lib/games/serpentina/skins.ts`)
 - **Táctil:** swipe ↑ ↓ ← → (≥ 24 px) entra en la cola de 2 giros.
 
+## RANARIA (`ranaria`)
+
+- **Resumen:** (sin cambios en `short`).
+- **Descripción:** Guía a una rana de neón casilla a casilla: cruza cuatro carriles de tráfico, salta sobre troncos y boyas a la deriva y alcanza uno de los cinco nenúfares antes de que se agoten sus 30 segundos. Cada fila nueva suma puntos, cada nenúfar más, y el tiempo sobrante es bonus. Llena los cinco para subir de nivel y acelerar el río y la carretera. Tienes 3 vidas.
+- **Cover:** `cover-rana` · **Orden:** 7
+- **Código:** `lib/games/ranaria/`, `components/ranaria-player.tsx` · migración `0006_juego_ranaria`
+- **Mecánica:** rejilla 15×12 de 50 px; 4 carriles de tráfico, mediana, 5 de río (troncos/boyas que arrastran), 5 nenúfares; 30 s por rana; +10 % velocidad por nivel hasta 1,5×.
+- **Táctil:** todavía no (SPEC JAM ranaria 03); el overlay avisa `REQUIERE TECLADO`.
+
 ## Sin motor (simulación `GamePlayer`, `ranked = false`)
 
-`duelo-pixel` (DUELO PIXEL), `gloton` (GLOTÓN), `invasores` (INVASORES), `ranaria` (RANARIA).
+`duelo-pixel` (DUELO PIXEL), `gloton` (GLOTÓN), `invasores` (INVASORES).
