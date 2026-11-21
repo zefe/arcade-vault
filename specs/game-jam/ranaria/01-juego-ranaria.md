@@ -220,6 +220,14 @@ Teclas:
 
 Los saltos ignoran `e.repeat`: mantener una tecla da un solo salto.
 
+## Skins
+
+Implementados tras la spec (agente `skin-designer`): `lib/games/ranaria/skins.ts` (`RanariaPalette`, `SKINS`), `RanariaEngine.setSkin()` en caliente, `useSkin(game.id)` + chips en `PlayerShell`. Los colores de esta spec son el skin **NEÓN** (glow 12 en rana, vehículos, muerte y barra < 5 s).
+
+- **CLÁSICO** (default): fondo `#000000`, río `#0a1850`, aceras `#2a1440`, seto `#123a12`; rana `#40c040`, moto `#f0d040`, coche `#e04040`, camión `#f08020`, bólido `#4a80f0`, tronco `#c08040`, boyas `#e04040`; cuerpos sólidos con detalle negro, sin glow. Mín. 3,91 (barra < 5 s sobre acera).
+- **NEÓN**: paleta de esta spec. Mín. 4,46 (muerte sobre el río).
+- **RETRO** ámbar `#ffb000`, fondo `#0a0600`, glow 6, scanlines: rana y muerte núcleo `#ffe6b3`, peligros 100 % `#ffb000`, camión/tronco/nenúfar 70 % `#b37b00`, decoración 45 % `#735000`. Mín. 5,15.
+
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para el overlay, los estilos y la cover.

@@ -149,6 +149,22 @@ Teclas: sin cambios respecto a la 01.
 | `Espacio`       | Empezar           | `ready`                        |
 | `P` / `Esc`     | Pausar o reanudar | `playing`                      |
 
+## Skins
+
+Los colores de la 01 ya viven en `lib/games/ranaria/skins.ts` (`RanariaPalette`, `SKINS: Record<SkinId, RanariaPalette>`); el motor dibuja con `this.palette` y `setSkin()` la cambia en caliente. Los hex de esta spec son los del skin **NEÓN**. Las entidades nuevas añaden claves a `RanariaPalette` (las tres entradas con las mismas claves) y **ningún color literal** en `engine.ts`/`entities.ts`; el glow usa `palette.glow` (0 en CLÁSICO).
+
+| Clave         | Uso                     | CLÁSICO   | NEÓN      | RETRO (ámbar)      |
+| ------------- | ----------------------- | --------- | --------- | ------------------ |
+| `eel`         | cuerpo de la anguila    | `#e04040` | `#ff006e` | `#ffb000` (100 %)  |
+| `eelZigzag`   | zigzag de 2 px          | `#f0d040` | `#f5ff00` | `#ffe6b3` (núcleo) |
+| `firefly`     | cuerpo de la luciérnaga | `#f0d040` | `#f5ff00` | `#ffe6b3` (núcleo) |
+| `fireflyWing` | alas de 1 px            | `#f5f0dc` | `#e6e9ff` | `#b37b00` (70 %)   |
+
+- Boya `down`: anillo con `palette.buoy` y `globalAlpha = 0.25` (sin `rgba` literal).
+- Contraste vs `water`: CLÁSICO mín. 3,95 (eel), NEÓN 4,46 (eel), RETRO 5,28 (ala). Todas ≥ 3:1.
+- RETRO: anguila (100 % + zigzag núcleo) y luciérnaga (núcleo + alas 70 %) se distinguen por forma y luminancia, no por tono.
+- Criterio: con cada skin la anguila y la luciérnaga se leen sobre el río y el cambio de skin en mitad de partida no reinicia ni altera el score.
+
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` si se toca algún componente cliente. Aplicar `/frontend-design` para el dibujo de anguila, luciérnaga y boyas sumergidas.

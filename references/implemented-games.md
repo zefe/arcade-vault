@@ -55,6 +55,7 @@ Fuente: tabla `games` en Supabase + código, consultado el 2026-11-20.
 - **Código:** `lib/games/ranaria/`, `components/ranaria-player.tsx` · migración `0006_juego_ranaria`
 - **Mecánica:** rejilla 15×12 de 50 px; 4 carriles de tráfico, mediana, 5 de río (troncos/boyas que arrastran), 5 nenúfares; 30 s por rana; +10 % velocidad por nivel hasta 1,5×.
 - **Táctil:** todavía no (SPEC JAM ranaria 03); el overlay avisa `REQUIERE TECLADO`.
+- **Skins:** clásico (default, río azul, aceras violeta, cuerpos sólidos) · neón · retro ámbar `#ffb000` (`lib/games/ranaria/skins.ts`)
 
 ## Sin motor (simulación `GamePlayer`, `ranked = false`)
 

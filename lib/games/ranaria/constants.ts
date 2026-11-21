@@ -149,37 +149,9 @@ export const TIME_BAR_W = 750;
 export const TIME_WARN = 10; // s: amarillo por debajo
 export const TIME_DANGER = 5; // s: magenta por debajo
 
-// Colores (valores de los tokens de globals.css + 4 derivados)
-export const COLORS = {
-  frog: "#00ff88", // --green
-  frogEyes: "#e6e9ff", // --ink
-  moto: "#f5ff00", // --yellow
-  coche: "#ff006e", // --magenta
-  camion: "#ff8a00", // derivado
-  bolido: "#ff3b3b", // derivado
-  log: "#ffcf3a", // --gold
-  logFill: "rgba(255,207,58,0.15)",
-  buoy: "#00f5ff", // --cyan
-  buoyFill: "rgba(0,245,255,0.15)",
-  water: "#001f2a", // derivado (cover-rana)
-  current: "rgba(0,245,255,0.18)",
-  road: "#0a0a0f", // --bg
-  roadDash: "rgba(230,233,255,0.15)",
-  safe: "rgba(0,255,136,0.08)",
-  safeEdge: "rgba(0,255,136,0.4)",
-  hedge: "#0b2a1e", // derivado
-  hedgeEdge: "rgba(0,255,136,0.5)",
-  pad: "#00ff88",
-  timeOk: "#00ff88",
-  timeWarn: "#f5ff00",
-  timeDanger: "#ff006e",
-  death: "#ff006e",
-} as const;
-
-export const BODY_ALPHA = 0.25; // relleno de carrocerías
+// Colores y glow: SKINS en ./skins.ts
 export const BODY_STROKE = 2; // px
 export const BUOY_RADIUS = 18; // px
-export const GLOW_BLUR = 12;
 
 // Factor de velocidad: 1× en nivel 1, +10 % por nivel, tope 1,5× (nivel 6+)
 export const speedFactor = (level: number) =>

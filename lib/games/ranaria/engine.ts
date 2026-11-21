@@ -42,6 +42,7 @@ import {
   drawTimeBar,
   moverX,
 } from "./entities";
+import type { RanariaPalette } from "./skins";
 
 export type RanariaPhase = "ready" | "playing" | "gameover";
 
@@ -77,6 +78,7 @@ export class RanariaEngine {
   private ctx: CanvasRenderingContext2D;
   private dpr: number;
   private onChange: (s: RanariaSnapshot) => void;
+  private palette: RanariaPalette;
 
   private lanes: Lane[] = [];
   private frog: Frog = RanariaEngine.newFrogState();
@@ -98,6 +100,7 @@ export class RanariaEngine {
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: RanariaSnapshot) => void,
+    palette: RanariaPalette, // SKINS[skin] de lib/games/ranaria/skins.ts
   ) {
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
@@ -108,6 +111,7 @@ export class RanariaEngine {
     canvas.width = WORLD_WIDTH * this.dpr;
     canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
+    this.palette = palette;
     this.initGame("ready");
   }
 
@@ -149,6 +153,13 @@ export class RanariaEngine {
   restart() {
     this.initGame("playing");
     this.emit();
+  }
+
+  // Cambia la paleta en caliente: misma partida, mismo estado. El loop sigue dibujando
+  // también en pausa y game over, así que basta con repintar ya este frame.
+  setSkin(palette: RanariaPalette) {
+    this.palette = palette;
+    this.draw();
   }
 
   destroy() {
@@ -461,24 +472,27 @@ export class RanariaEngine {
   // Solo el mundo: score, vidas, nivel, pausa y game over los pinta React.
   private draw() {
     const ctx = this.ctx;
+    const p = this.palette;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    drawBackground(ctx);
-    for (const lane of this.lanes) drawLane(ctx, lane);
-    drawBays(ctx, this.occupied);
+    ctx.fillStyle = p.bg;
+    ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    drawBackground(ctx, p);
+    for (const lane of this.lanes) drawLane(ctx, p, lane);
+    drawBays(ctx, p, this.occupied);
 
     const frog = this.frog;
     if (frog.state === "dying") {
-      drawDeath(ctx, this.frogCx(), frog.row * CELL + CELL / 2, frog.deathT);
+      drawDeath(ctx, p, this.frogCx(), frog.row * CELL + CELL / 2, frog.deathT);
     } else if (frog.state === "hopping") {
       // Interpolación entre la casilla de origen y la de destino
-      const p = Math.min(1, frog.hopT / HOP_TIME);
-      const x = frog.fromX + (frog.x - frog.fromX) * p;
-      const y = (frog.fromRow + (frog.row - frog.fromRow) * p) * CELL;
-      drawFrog(ctx, x, y, frog.facing, p);
+      const t = Math.min(1, frog.hopT / HOP_TIME);
+      const x = frog.fromX + (frog.x - frog.fromX) * t;
+      const y = (frog.fromRow + (frog.row - frog.fromRow) * t) * CELL;
+      drawFrog(ctx, p, x, y, frog.facing, t);
     } else {
-      drawFrog(ctx, frog.x, frog.row * CELL, frog.facing, 0);
+      drawFrog(ctx, p, frog.x, frog.row * CELL, frog.facing, 0);
     }
 
-    drawTimeBar(ctx, this.time);
+    drawTimeBar(ctx, p, this.time);
   }
 }
