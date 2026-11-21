@@ -24,6 +24,12 @@ const CONTROLS = [
   { keys: ["P", "Esc"], action: "Pausar" },
 ];
 
+// Sin esto, el botón conserva el foco y Espacio lo activaría de nuevo.
+const blurFocused = () => {
+  if (document.activeElement instanceof HTMLElement)
+    document.activeElement.blur();
+};
+
 export function RanariaPlayer({ game }: { game: Game }) {
   // useSyncExternalStore: false en el servidor, valor real tras hidratar, sin mismatch.
   const isTouch = useIsTouch();
@@ -44,13 +50,20 @@ export function RanariaPlayer({ game }: { game: Game }) {
   }, []);
 
   const togglePause = () => {
+    blurFocused();
     if (snapshot.paused) engineRef.current?.resume();
     else engineRef.current?.pause();
   };
 
-  const end = () => engineRef.current?.end();
+  const end = () => {
+    blurFocused();
+    engineRef.current?.end();
+  };
 
-  const restart = () => engineRef.current?.restart();
+  const restart = () => {
+    blurFocused();
+    engineRef.current?.restart();
+  };
 
   return (
     <PlayerShell
@@ -60,7 +73,9 @@ export function RanariaPlayer({ game }: { game: Game }) {
       level={snapshot.level}
       paused={snapshot.paused}
       over={snapshot.phase === "gameover"}
+      controlsDisabled={snapshot.phase === "ready"}
       crtClassName="ranaria-crt"
+      pauseHint="PULSA P O REANUDAR PARA CONTINUAR"
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
