@@ -16,9 +16,10 @@ Routes (`app/`): `/` (landing, `components/home.tsx`), `/acerca`, `/juegos` (lib
 
 - `/spec <feature>`: guided spec designer (asks questions, builds section by section).
 - `/spec-impl <NN-spec-name>`: implements a spec whose state is Aprobado; creates branch `spec-NN-<name>`, goes step by step pausing for diff review.
-- `/nuevo-juego <reference folder | catalog id | description>`: specialization of `/spec` for new real games with leaderboard, following the SPEC 04/05 pattern (`.claude/skills/nuevo-juego/`: `SKILL.md`, `patron-juego-real.md`, `template.md`). Saves spec in Borrador; then `/spec-impl`.
-- New game flow: `game-planner` agent (pick the game) → `/nuevo-juego` (spec in Borrador) → approve → `/spec-impl`.
-- Game jam flow: `game-jam` agent + theme → specs in `specs/game-jam/<game-id>/` (Borrador) → review/approve → `/spec-impl`.
+- `/spec-impl-game <NN-spec-name | game-jam/<id>/NN-...>`: same flow as `/spec-impl` (reads and follows `.claude/skills/spec-impl`), then runs `skin-designer` and afterwards `mobile-porter` (sequential, never parallel) on the implemented game (`.claude/skills/spec-impl-game/SKILL.md`). Never commits.
+- `/nuevo-juego <reference folder | catalog id | description>`: specialization of `/spec` for new real games with leaderboard, following the SPEC 04/05 pattern (`.claude/skills/nuevo-juego/`: `SKILL.md`, `patron-juego-real.md`, `template.md`). Saves spec in Borrador; then `/spec-impl-game`.
+- New game flow: `game-planner` agent (pick the game) → `/nuevo-juego` (spec in Borrador) → approve → `/spec-impl-game`.
+- Game jam flow: `game-jam` agent + theme → specs in `specs/game-jam/<game-id>/` (Borrador) → review/approve → `/spec-impl-game`.
 - `/spec` and `/spec-impl` come from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (pinned in `skills-lock.json`; install: `npx skills@latest add Klerith/fernando-skills`).
 - Spec header: `> **Estado:**` (Borrador → Aprobado → Implementado), `Depende de`, `Fecha`, `Objetivo`. When done, set state to Implementado and update this file.
 

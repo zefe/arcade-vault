@@ -1,6 +1,6 @@
 ---
 name: nuevo-juego
-description: Especialización de /spec para juegos (lee y aplica .claude/skills/spec antes de escribir). Diseña la spec de un juego real con leaderboard para Arcade Vault, siguiendo el patrón de SPEC 04 (motor ROCAS) y SPEC 05 (tablas games/scores). Parte de una referencia de references/started-games/ o de una descripción desde cero. Pregunta antes de escribir y guarda specs/NN-juego-<id>.md en Borrador para implementarla con /spec-impl.
+description: Especialización de /spec para juegos (lee y aplica .claude/skills/spec antes de escribir). Diseña la spec de un juego real con leaderboard para Arcade Vault, siguiendo el patrón de SPEC 04 (motor ROCAS) y SPEC 05 (tablas games/scores). Parte de una referencia de references/started-games/ o de una descripción desde cero. Pregunta antes de escribir y guarda specs/NN-juego-<id>.md en Borrador para implementarla con /spec-impl-game.
 disable-model-invocation: true
 argument-hint: "<carpeta de referencia | id de catálogo | descripción del juego>"
 allowed-tools: Read, Glob, Grep, Write, AskUserQuestion, Bash(ls:*), Bash(cat:*), Bash(date:*)
@@ -30,7 +30,7 @@ Selección de player actual:
 
 ---
 
-Este skill **no escribe código**. Produce una spec que integra un juego real en la plataforma: motor TypeScript en canvas, componente sobre `PlayerShell`, HUD React, pausa, modal FIN DEL JUEGO y guardado en `scores` con `ranked = true`. La implementación se hace después con `/spec-impl`.
+Este skill **no escribe código**. Produce una spec que integra un juego real en la plataforma: motor TypeScript en canvas, componente sobre `PlayerShell`, HUD React, pausa, modal FIN DEL JUEGO y guardado en `scores` con `ranked = true`. La implementación se hace después con `/spec-impl-game` (spec-impl + skin-designer + mobile-porter).
 
 Archivos de apoyo en este directorio:
 
@@ -113,7 +113,7 @@ Evita:
    - Ruta de la spec.
    - Está en `Borrador`: revisarla y cambiarla a `Aprobado`.
    - Si creaste `specs/.spec-config.yml`, menciónalo (`AutoCreateBranch: true` por defecto).
-   - Siguiente paso: `/spec-impl NN-juego-<id>`.
+   - Siguiente paso: `/spec-impl-game NN-juego-<id>`.
    - **Para aquí.** No propongas implementar.
 
 ## Reglas
