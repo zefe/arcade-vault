@@ -10,6 +10,7 @@ import {
   LANES,
   LANE_OFFSET_STEP,
   MAX_CX,
+  MAX_DPR,
   MIN_CX,
   PAD_COLS,
   PAD_POINTS,
@@ -22,11 +23,24 @@ import {
   START_LIVES,
   TIME_PER_FROG,
   TIME_POINTS,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
   clamp,
   colCenter,
   speedFactor,
 } from "./constants";
-import { type Dir, type Frog, type Lane, moverX } from "./entities";
+import {
+  type Dir,
+  type Frog,
+  type Lane,
+  drawBackground,
+  drawBays,
+  drawDeath,
+  drawFrog,
+  drawLane,
+  drawTimeBar,
+  moverX,
+} from "./entities";
 
 export type RanariaPhase = "ready" | "playing" | "gameover";
 
@@ -42,6 +56,8 @@ const START_X = colCenter(START_COL) - CELL / 2; // 375
 
 export class RanariaEngine {
   private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private dpr: number;
   private onChange: (s: RanariaSnapshot) => void;
 
   private lanes: Lane[] = [];
@@ -64,6 +80,13 @@ export class RanariaEngine {
     onChange: (s: RanariaSnapshot) => void,
   ) {
     this.canvas = canvas;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("RanariaEngine: canvas 2D no disponible");
+    this.ctx = ctx;
+    // Backing store 800·dpr × 600·dpr; se dibuja en coordenadas del mundo lógico.
+    this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    canvas.width = WORLD_WIDTH * this.dpr;
+    canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
     this.initGame("ready");
   }
@@ -351,5 +374,29 @@ export class RanariaEngine {
     frog.hopT = 0;
     this.bufferedHop = null;
     this.lives = Math.max(0, this.lives - 1);
+  }
+
+  // Solo el mundo: score, vidas, nivel, pausa y game over los pinta React.
+  private draw() {
+    const ctx = this.ctx;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    drawBackground(ctx);
+    for (const lane of this.lanes) drawLane(ctx, lane);
+    drawBays(ctx, this.occupied);
+
+    const frog = this.frog;
+    if (frog.state === "dying") {
+      drawDeath(ctx, this.frogCx(), frog.row * CELL + CELL / 2, frog.deathT);
+    } else if (frog.state === "hopping") {
+      // Interpolación entre la casilla de origen y la de destino
+      const p = Math.min(1, frog.hopT / HOP_TIME);
+      const x = frog.fromX + (frog.x - frog.fromX) * p;
+      const y = (frog.fromRow + (frog.row - frog.fromRow) * p) * CELL;
+      drawFrog(ctx, x, y, frog.facing, p);
+    } else {
+      drawFrog(ctx, frog.x, frog.row * CELL, frog.facing, 0);
+    }
+
+    drawTimeBar(ctx, this.time);
   }
 }
