@@ -53,6 +53,23 @@ export type RanariaSnapshot = {
   level: number; // 1, 2, 3…
 };
 
+const HOP_KEYS: Record<string, Dir> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  KeyW: "up",
+  KeyS: "down",
+  KeyA: "left",
+  KeyD: "right",
+};
+const GAME_KEYS = new Set([
+  ...Object.keys(HOP_KEYS),
+  "Space",
+  "KeyP",
+  "Escape",
+]);
+
 const START_X = colCenter(START_COL) - CELL / 2; // 375
 
 export class RanariaEngine {
@@ -96,6 +113,7 @@ export class RanariaEngine {
 
   // Registra listeners, arranca el loop y queda en "ready".
   mount() {
+    window.addEventListener("keydown", this.handleKeyDown);
     window.addEventListener("blur", this.handleBlur);
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.emit();
@@ -135,12 +153,37 @@ export class RanariaEngine {
 
   destroy() {
     cancelAnimationFrame(this.rafId);
+    window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("blur", this.handleBlur);
     document.removeEventListener(
       "visibilitychange",
       this.handleVisibilityChange,
     );
   }
+
+  // En "gameover" no se toca el teclado: el modal necesita espacios y WASD.
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (this.phase === "gameover" || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!GAME_KEYS.has(e.code)) return;
+    e.preventDefault();
+
+    if (this.phase === "ready") {
+      if (e.code === "Space" && !e.repeat) this.start();
+      return;
+    }
+
+    // "playing"
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (e.repeat) return;
+      if (this.paused) this.resume();
+      else this.pause();
+      return;
+    }
+    // Mantener una tecla da un solo salto.
+    const dir = HOP_KEYS[e.code];
+    if (!dir || e.repeat) return;
+    this.hop(dir);
+  };
 
   private handleBlur = () => this.pause();
 
