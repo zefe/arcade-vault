@@ -8,6 +8,7 @@ Skins obligatorios por juego real: `clasico` (default), `neon`, `retro`. Contrat
 - 2026-11-18 — infra común creada (`lib/skins.ts`, `lib/use-skin.ts`, chips en `PlayerShell`, CSS `.crt.skin-*`). rocas → conforme. caida, bloque-buster → sin skins (fuera de alcance de la petición).
 - 2026-11-18 — bloque-buster → conforme (skins.ts, setSkin, useSkin, `--phosphor` verde, 290px). caida sigue sin skins.
 - 2026-11-18 — serpentina (sin motor) → sección Skins añadida a `specs/08-juego-serpentina.md` (paletas, contraste, pasos 3/7/11/18, criterios). Se implementa con `/spec-impl`.
+- 2026-11-20 — ranaria → conforme (skins.ts, setSkin, useSkin, `--phosphor` ámbar). Sección Skins añadida a specs JAM ranaria 01/02/03 (02/03 con claves nuevas propuestas). caida sigue sin skins.
 
 ## Decisiones de implementación (difieren o concretan §3)
 
@@ -22,7 +23,8 @@ Skins obligatorios por juego real: `clasico` (default), `neon`, `retro`. Contrat
 - rocas — retro **ámbar** `#ffb000` / bg `#0a0600`. Ratios mín: clásico 6.06 (powerup/hudText `#ff4040`), neón 5.15 (magenta), retro 3.19 (partícula `#805800`, decoración; entidades ≥ 5.53). Sin ajustes por contraste.
 - bloque-buster — retro **verde** `#33ff66` / bg `#020a04`. 7 colores de ladrillo → 3 luminancias (`#33ff66`/`#24b347`/`#17732e`) × patrón (`blockPatterns`: solid/outline/stripe). Clásico: rojo `#e04040`, amarillo `#f0d040`, azul `#4a80f0`, violeta `#c050e0`, naranja `#f08020`, verde `#40c040`, gris `#a0a0a0`, paleta `#d8d8d0`, bola `#f5f0dc`, highlight transparente. Ratios mín: clásico 4.98 (rojo), neón 5.15 (magenta), retro 3.37 (45 %). Sin ajustes.
 - serpentina (spec 08) — retro **verde** `#33ff66` / bg `#020a04`. Ratios mín: clásico 4.26 (cherry), neón 5.15 (apple/cherry), retro 3.37 (hoja/rabito). Ajuste: ojos NEÓN `#e6e9ff` → `#0a0a0f` (ojo/cabeza 1.12 → 14.73). Neón cabeza = cuerpo `#00ff88` (se distingue por glow + ojos).
-- Siguiente sugerido: caida → retro ámbar (variedad: rocas ámbar, bloque-buster verde) o verde; 7 piezas → reutilizar patrón luminancia × forma.
+- ranaria — retro **ámbar** `#ffb000` / bg `#0a0600`. Claves extra `bodyAlpha` (clásico 1 = cuerpos sólidos, neón/retro 0.25) y `detail` (clásico `#000000` para parabrisas/vetas/banda; null = color de entidad). Relleno alpha vía `globalAlpha` (`fillBody`), no `withAlpha`. Ratios mín (entidad vs su zona): clásico 3.91 (timeDanger/acera), neón 4.46 (muerte/río), retro 5.15. Ajuste: clásico roadDash `#5a5a5a` → `#3a3a3a` (3.04 → 1.85, no compite).
+- Siguiente sugerido: caida → retro ámbar (variedad: rocas/ranaria ámbar, bloque-buster/serpentina verde) o verde; 7 piezas → reutilizar patrón luminancia × forma.
 
 ## Preferencias del usuario
 

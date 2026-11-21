@@ -203,6 +203,11 @@ export function PlayerShell({
                     }
                     placeholder="TUS INICIALES"
                     aria-label="Tus iniciales"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="done"
                     disabled={saving}
                   />
                   <button

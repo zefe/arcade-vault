@@ -124,5 +124,5 @@ Concisa, en el idioma del usuario:
 1. Tema y juego elegido: título, `game-id`, categoría, pitch de 1 línea, encaje /35 y esfuerzo.
 2. Los otros 2 conceptos en una línea cada uno, con su puntuación.
 3. Rutas de las specs creadas, con una línea de qué cubre cada una.
-4. Siguiente paso: revisar las specs → cambiar a `Aprobado` → `/spec-impl game-jam/<game-id>/01-juego-<game-id>` (o moverla a `specs/NN-juego-<game-id>.md` al aprobar si `/spec-impl` exige esa ruta).
+4. Siguiente paso: revisar las specs → cambiar a `Aprobado` → `/spec-impl-game game-jam/<game-id>/01-juego-<game-id>` (implementa + skin-designer + mobile-porter).
 5. Una línea confirmando que la memoria se actualizó.

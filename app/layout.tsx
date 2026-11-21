@@ -1,5 +1,9 @@
-import type { Metadata } from "next";
-import { Courier_Prime, JetBrains_Mono, Press_Start_2P } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import {
+  Courier_Prime,
+  JetBrains_Mono,
+  Press_Start_2P,
+} from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Nav } from "@/components/nav";
 import { UserProvider } from "@/lib/user-context";
@@ -26,6 +30,15 @@ const courierPrime = Courier_Prime({
 export const metadata: Metadata = {
   title: "Arcade Vault",
   description: "Juega y compite por el puntaje más alto",
+};
+
+// Móvil: el fondo cubre notch y barras (viewportFit cover + safe areas en globals.css).
+// Sin maximumScale/userScalable: el zoom solo se bloquea en el CRT con touch-action.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0a0a0f", // --bg
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

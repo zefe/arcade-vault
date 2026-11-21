@@ -1,25 +1,26 @@
 # SPEC JAM ranaria 03 — Controles táctiles y feedback visual de RANARIA
 
 > **Estado:** Borrador
-> **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, `game-jam/ranaria/01-juego-ranaria`, `game-jam/ranaria/02-ranaria-niveles`
+> **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07, SPEC 09, `game-jam/ranaria/01-juego-ranaria`, `game-jam/ranaria/02-ranaria-niveles`
 > **Fecha:** 2026-11-18
 > **Objetivo:** Hacer RANARIA jugable en móvil con deslizar y tocar, y añadir popups de puntos, salpicaduras y destellos que expliquen cada suma y cada muerte.
 
 ## Por qué existe esta spec
 
-RANARIA es un juego de un salto por gesto: se presta al táctil mejor que cualquier otro juego real del catálogo, que hoy solo avisan `REQUIERE TECLADO`.
+RANARIA es un juego de un salto por gesto y se presta al táctil; hoy es el único juego real que aún avisa `REQUIERE TECLADO` (los otros 4 ya cumplen SPEC 09).
 Tras la 01 y la 02 la puntuación tiene cuatro fuentes (avance, nenúfar, tiempo, luciérnaga) más el bonus de ronda y las vidas extra, pero el jugador solo ve subir un número en el HUD.
 Tampoco distingue a simple vista si murió por agua, por boya hundida o por vehículo.
 Esta spec añade control táctil propio y feedback en el canvas sin tocar el balance de la 02.
-Será el primer juego real con `controls = 'TECLADO / TÁCTIL'`; el patrón de gestos queda documentado para otros juegos de rejilla.
+Sigue el contrato táctil de SPEC 09 (mismo patrón que SERPENTINA: swipe con `classifySwipe`).
 
 ## Alcance
 
 **Dentro:**
 
-- Gestos táctiles sobre el canvas: deslizar en 4 direcciones salta en esa dirección; tocar salta hacia arriba.
-- `touch-action: none` en el canvas de RANARIA para que los gestos no desplacen la página.
-- Overlay de `ready` en táctil: `TOCA PARA EMPEZAR` sustituye a `REQUIERE TECLADO` y tocar el overlay llama a `start()`.
+- API de acción pública `hop(dir)` en el motor, usada por teclado y gestos (SPEC 09).
+- Gestos sobre el canvas: deslizar en 4 direcciones salta en esa dirección; tocar salta hacia arriba.
+- Inicio en táctil: tocar el CRT en `ready` llama a `start()` desde el listener del canvas (el overlay `.ranaria-ready` ya tiene `pointer-events: none`) y ese toque no salta.
+- Overlay de `ready` en táctil: `TOUCH_CONTROLS` propios (`Desliza ↑ ↓ ← →` Saltar · `Toca` Saltar arriba) y `TOCA PARA EMPEZAR`, sin `REQUIERE TECLADO`. `pauseHint` táctil `PULSA REANUDAR PARA CONTINUAR` (ya cableado).
 - Popups de puntos en el canvas: `+10` por avance, `+N` al llegar a un nenúfar (nenúfar, tiempo y luciérnaga sumados), `RONDA +N` al completar la ronda y `+1 VIDA` al ganar una vida.
 - Salpicadura de partículas al caer al agua o con una boya hundida; la muerte por vehículo, anguila, seto o tiempo conserva el aspa de la 01.
 - Destello del nenúfar al ocuparlo y triple destello de los 5 nenúfares al completar la ronda.
@@ -48,7 +49,7 @@ where id = 'ranaria';
 
 `long` no cambia: describe el juego, no los controles.
 
-Contrato del motor: `RanariaPhase`, `RanariaSnapshot` y los métodos públicos no cambian. El motor registra los listeners de puntero del canvas en `mount()` y los quita en `destroy()`.
+Contrato del motor: `RanariaPhase` y `RanariaSnapshot` no cambian. Nuevo método público `hop(dir: Dir): void` (sustituye al `hop` privado como punto de entrada; respeta búfer y fases). El motor registra los listeners de puntero del canvas en `mount()` y los quita en `destroy()`.
 
 Entidades nuevas (`lib/games/ranaria/entities.ts`):
 
@@ -84,16 +85,17 @@ Estado nuevo del motor (privado): `popups: Popup[]`, `particles: Particle[]`, `f
 Convenciones:
 
 - Mundo, balance, puntos, niveles y amenazas: sin cambios respecto a la 02.
-- Gestos (eventos `pointerdown`, `pointerup` y `pointercancel` en el canvas, solo con `pointerType` `touch` o `pen`):
+- Gestos (eventos `pointerdown`, `pointerup` y `pointercancel` en el canvas, cualquier `pointerType`, como en SPEC 09):
   - Se sigue un único puntero; un segundo dedo se ignora mientras el primero está apoyado.
   - Distancia medida en px CSS entre `pointerdown` y `pointerup`.
-  - `SWIPE_MIN = 24` px y `SWIPE_MAX_TIME = 0.4` s: deslizar si la distancia es al menos 24 px y dura como mucho 0,4 s. Dirección del eje dominante (`|dx| ≥ |dy|` → horizontal).
-  - `TAP_MAX = 12` px y `TAP_MAX_TIME = 0.25` s: tocar si se mueve como mucho 12 px y dura como mucho 0,25 s → salto arriba.
+  - Umbrales compartidos de `lib/games/gestures.ts` (no duplicar): `classifySwipe(dx, dy)` con `SWIPE_MIN_PX` (24 px; eje dominante) y `SWIPE_MAX_MS = 400` local en `constants.ts`: deslizar si dura como mucho 0,4 s.
+  - Tocar: movimiento ≤ `TAP_MAX_PX` (10 px) y duración ≤ `TAP_MAX_MS` (250 ms) → salto arriba.
+  - En `ready`, el `pointerup` solo llama a `start()` y se consume.
   - Gestos fuera de estos rangos se ignoran.
-  - Cada gesto entra por el mismo camino que una tecla: mismo búfer de 1 durante el salto, mismas fases activas (`playing`, sin pausa ni muerte).
+  - Cada gesto llama a `hop(dir)`, igual que una tecla: mismo búfer de 1 durante el salto, mismas fases activas (`playing`, sin pausa ni muerte).
   - `pointercancel`, `pause()`, `blur` y `visibilitychange` descartan el puntero en curso.
   - `preventDefault` en `pointerdown` solo fuera de `gameover`.
-- `.ranaria-crt canvas { touch-action: none; }`.
+- `touch-action: none` ya lo da `.crt-screen canvas` (bloque «Táctil (SPEC 09)» de `globals.css`); no añadir regla propia.
 - Popups:
   - Duración `POPUP_TIME = 0.7` s; suben 30 px y su alpha baja de 1 a 0 de forma lineal. Con `reducedMotion`, no suben.
   - Máximo `MAX_POPUPS = 8`; al superar el máximo se descarta el más antiguo.
@@ -123,22 +125,39 @@ Entradas:
 | Deslizar (táctil) | Saltar            | `playing`, sin pausa ni muerte |
 | Tocar (táctil)    | Saltar arriba     | `playing`, sin pausa ni muerte |
 | `Espacio`         | Empezar           | `ready`                        |
-| Tocar el overlay  | Empezar           | `ready`, solo táctil           |
+| Tocar el CRT      | Empezar           | `ready`                        |
 | `P` / `Esc`       | Pausar o reanudar | `playing`                      |
+
+## Skins
+
+Los colores viven en `lib/games/ranaria/skins.ts` (`RanariaPalette`); los hex de esta spec son los del skin **NEÓN**. Popups, splash y destellos añaden claves a `RanariaPalette` (mismas claves en los tres skins) y **ningún color literal** en `engine.ts`/`entities.ts`; los alpha van con `globalAlpha`.
+
+| Clave        | Uso                                  | CLÁSICO   | NEÓN      | RETRO (ámbar)      |
+| ------------ | ------------------------------------ | --------- | --------- | ------------------ |
+| `popAdvance` | popup `advance`                      | `#f5f0dc` | `#e6e9ff` | `#ffb000` (100 %)  |
+| `popPad`     | popup `pad`                          | `#40c040` | `#00ff88` | `#ffe6b3` (núcleo) |
+| `popRound`   | popup `round`                        | `#f0d040` | `#f5ff00` | `#ffe6b3` (núcleo) |
+| `popLife`    | popup `life`                         | `#ff6060` | `#ff006e` | `#ffe6b3` (núcleo) |
+| `splash`     | partículas de chapuzón               | `#7aa0ff` | `#00f5ff` | `#b37b00` (70 %)   |
+| `padFlash`   | anillo de nenúfar y relleno de ronda | `#40c040` | `#00ff88` | `#ffe6b3` (núcleo) |
+
+- Relleno de ronda completa: `padFlash` con `globalAlpha = 0.6` (equivale a `rgba(0,255,136,0.6)` en NEÓN).
+- Contraste de textos vs `bg`: CLÁSICO mín. 7,09 (`#ff6060`, ajustado desde `#e04040` = 3,95 sobre el río), NEÓN 5,15 (`#ff006e`; 4,46 sobre el río, texto bold ≥ 14 px), RETRO 11,03.
+- Destellos con alpha ≤ 0,6 y sin rellenos a pantalla completa.
 
 ## Plan de implementación
 
 1. Crear la rama de trabajo y leer `node_modules/next/dist/docs/` sobre componentes cliente. Aplicar `/frontend-design` para el overlay táctil y el estilo de popups y destellos.
-2. Añadir a `lib/games/ranaria/constants.ts` `SWIPE_MIN`, `SWIPE_MAX_TIME`, `TAP_MAX`, `TAP_MAX_TIME`, `POPUP_TIME`, `MAX_POPUPS`, `SPLASH_TIME` y `FLASH_TIME`.
+2. Añadir a `lib/games/ranaria/constants.ts` `SWIPE_MAX_MS`, `POPUP_TIME`, `MAX_POPUPS`, `SPLASH_TIME` y `FLASH_TIME`.
 3. Añadir a `entities.ts` `Popup`, `Particle`, `Flash`, `drawPopup`, `drawParticle` y `drawFlash`.
-4. Refactorizar en `engine.ts` la entrada de salto a un único método privado `requestHop(dir)` usado por teclado y gestos. Verificar: el teclado se comporta igual que en la 02.
-5. Añadir los listeners `pointerdown`, `pointerup` y `pointercancel` del canvas en `mount()` y quitarlos en `destroy()`, con la lógica de gesto de Convenciones.
+4. Refactorizar en `engine.ts` la entrada de salto a un método público `hop(dir)` usado por teclado y gestos (el salto interno pasa a otro nombre privado). Verificar: el teclado se comporta igual que en la 02.
+5. Añadir los listeners `pointerdown`, `pointerup` y `pointercancel` del canvas en `mount()` y quitarlos en `destroy()`, con `classifySwipe` y los umbrales de `lib/games/gestures.ts`; tocar en `ready` → `start()`.
 6. Añadir la creación de popups, salpicaduras y destellos en los puntos de avance, nenúfar, ronda, vida extra y muerte por agua, y su actualización y dibujo.
 7. Añadir `reducedMotion` con `matchMedia` y su listener `change`, retirado en `destroy()`.
-8. Cambiar `components/ranaria-player.tsx`: en táctil el overlay de `ready` muestra `TOCA PARA EMPEZAR`, es pulsable y llama a `start()` tras `blurFocused()`; en escritorio no cambia.
-9. Añadir a `app/globals.css` `touch-action: none` en `.ranaria-crt canvas` y el estilo pulsable de `.ranaria-touch`.
+8. Cambiar `components/ranaria-player.tsx`: en táctil el overlay de `ready` muestra `TOUCH_CONTROLS` y `TOCA PARA EMPEZAR` (sin `REQUIERE TECLADO`), como SERPENTINA; el overlay sigue sin recibir toques. En escritorio no cambia.
+9. En `app/globals.css`, quitar `.ranaria-touch` si queda sin uso. `touch-action` y `pointer-events: none` del overlay ya existen.
 10. Crear la migración `0007_ranaria_tactil.sql` (renumerar si está tomada), aplicarla con MCP `apply_migration` y revisar `get_advisors` de seguridad.
-11. Actualizar la ficha de `ranaria` en `references/implemented-games.md` (controles `TECLADO / TÁCTIL`) y `CLAUDE.md` (Stack notes: primer juego real con gestos táctiles).
+11. Actualizar la ficha de `ranaria` en `references/implemented-games.md` (controles `TECLADO / TÁCTIL`, esquema swipe/tap) y `CLAUDE.md` (Stack notes, línea de esquemas táctiles: RANARIA swipe + tap).
 12. Pasar `npm run lint` y `npm run build`; corregir errores y warnings.
 
 ## Criterios de aceptación
@@ -152,7 +171,7 @@ Entradas:
 
 - [ ] En escritorio el overlay de `ready` es el de la 01, con `PULSA ESPACIO` y sin `TOCA PARA EMPEZAR`.
 - [ ] En un dispositivo táctil (o emulación móvil de DevTools) el overlay muestra `TOCA PARA EMPEZAR` y no muestra `REQUIERE TECLADO`.
-- [ ] Tocar el overlay en táctil empieza la partida.
+- [ ] Tocar el CRT en `ready` empieza la partida y ese toque no hace saltar a la rana.
 - [ ] En `ready`, deslizar sobre el canvas no mueve la rana.
 
 **Mecánicas**
@@ -160,11 +179,11 @@ Entradas:
 - [ ] Deslizar hacia arriba, abajo, izquierda o derecha al menos 24 px en menos de 0,4 s salta una casilla en esa dirección.
 - [ ] Tocar el canvas sin desplazar el dedo salta una casilla hacia arriba.
 - [ ] Deslizar en diagonal salta en la dirección del eje con mayor recorrido.
-- [ ] Un gesto lento (más de 0,4 s) o un movimiento entre 13 y 23 px no salta.
+- [ ] Un gesto lento (más de 0,4 s) o un movimiento entre 11 y 23 px no salta.
 - [ ] Dos gestos muy seguidos dan dos saltos; un tercero durante el mismo salto se ignora.
 - [ ] Un segundo dedo apoyado mientras el primero desliza no genera otro salto.
 - [ ] Deslizar sobre el canvas no desplaza la página.
-- [ ] Con el ratón, hacer click o arrastrar sobre el canvas no mueve la rana.
+- [ ] Con teclado en escritorio el juego se comporta igual que en la 02.
 - [ ] Puntuación, niveles, amenazas y tiempos son idénticos a la 02.
 
 **HUD y visual**
@@ -205,7 +224,7 @@ Entradas:
 
 **Regresiones**
 
-- [ ] `/juegos/rocas/jugar`, `/juegos/caida/jugar` y `/juegos/bloque-buster/jugar` siguen mostrando su aviso de táctil y conservan sus mecánicas.
+- [ ] `/juegos/rocas/jugar`, `/juegos/caida/jugar`, `/juegos/bloque-buster/jugar` y `/juegos/serpentina/jugar` conservan sus controles táctiles de SPEC 09 y sus mecánicas.
 - [ ] `/juegos/gloton/jugar` conserva la simulación y el modal muestra `SIMULACIÓN: NO PUNTÚA`.
 - [ ] `git status` no muestra cambios en `references/`.
 
@@ -219,9 +238,9 @@ Entradas:
 - **Sí:** deslizar y tocar sobre el propio canvas. Un salto por gesto es el control natural de un juego de rejilla y no tapa el mundo.
 - **No:** cruceta en pantalla. Tapa parte de los carriles en un mundo 4:3 y exige un diseño de layout propio.
 - **Sí:** tocar salta hacia arriba. Es el movimiento más frecuente y acelera el juego en móvil.
-- **Sí:** umbrales de 24 px y 0,4 s para deslizar, 12 px y 0,25 s para tocar, con zona muerta entre 13 y 23 px. Evita saltos accidentales por temblor del dedo.
-- **Sí:** gestos solo con `pointerType` `touch` o `pen`. Un click de ratón en escritorio no debe mover la rana.
-- **Sí:** gestos y teclas por el mismo `requestHop`. Mismo búfer y mismas fases sin duplicar lógica.
+- **Sí:** umbrales de `lib/games/gestures.ts` (24 px deslizar, 10 px / 250 ms tocar) más 0,4 s máximo de deslizamiento propio de RANARIA. Misma sensibilidad que el resto de juegos (SPEC 09).
+- **Sí:** gestos con cualquier `pointerType`, como fija SPEC 09 (gestos activos siempre; híbridos táctiles funcionan). Antes se proponía solo `touch`/`pen`; se alinea con el contrato (mobile-porter, 2026-11-20).
+- **Sí:** gestos y teclas por el mismo `hop(dir)` público. Mismo búfer y mismas fases sin duplicar lógica; sin `KeyboardEvent` sintéticos (SPEC 09).
 - **Sí:** `controls = 'TECLADO / TÁCTIL'` por migración. La ficha debe decir que se juega en móvil.
 - **Sí:** popups con incrementos, no totales. El canvas sigue sin duplicar el HUD de la plataforma.
 - **Sí:** salpicadura distinta del aspa. El jugador entiende si murió por agua o por choque.
@@ -229,21 +248,21 @@ Entradas:
 - **Sí:** efectos sin glow y con tope de 8 popups. `shadowBlur` en partículas bajaría los FPS en móviles.
 - **Sí:** sin vibración. La API no existe en todos los navegadores y merece su propia decisión.
 - **Sí:** sin cambios de balance. Las marcas de la 02 siguen siendo comparables.
-- **Sí:** el resto de juegos reales conservan `REQUIERE TECLADO`. Sus controles táctiles son otro diseño.
+- **Sí:** no se tocan los controles táctiles de los otros juegos reales (SPEC 09).
 - **Sí:** sin sonido. Audio y su control de volumen merecen spec propia.
 
 ## Riesgos
 
-| Riesgo                                                              | Mitigación                                                                                     |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| El navegador desplaza la página o hace zoom con el gesto            | `touch-action: none` en el canvas y `preventDefault` en `pointerdown` fuera de `gameover`.     |
-| `preventDefault` en el canvas impide escribir en el modal           | Nunca en `gameover`; el modal está fuera del canvas.                                           |
-| Listeners de puntero que sobreviven al desmontaje                   | Registrados en `mount()` y quitados en `destroy()`; criterio de entrar y salir 5 veces.        |
-| La conversión de distancia falla con la CRT escalada                | Umbrales en px CSS, sin convertir a coordenadas del mundo.                                     |
-| Detección táctil errónea en portátiles con pantalla táctil          | Overlay según `(hover: none) and (pointer: coarse)`; los gestos funcionan siempre con `touch`. |
-| Popups encadenados tapan la rana en carreras rápidas                | Tope de 8 y vida de 0,7 s.                                                                     |
-| Fuente `monospace` del canvas distinta de la pixel de la plataforma | Riesgo aceptado: cargar la fuente pixel en canvas exige esperar a `document.fonts`.            |
-| Número de migración `0007` ocupado al implementar                   | Renumerar al siguiente libre; el contenido no cambia.                                          |
+| Riesgo                                                              | Mitigación                                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| El navegador desplaza la página o hace zoom con el gesto            | `touch-action: none` en el canvas y `preventDefault` en `pointerdown` fuera de `gameover`. |
+| `preventDefault` en el canvas impide escribir en el modal           | Nunca en `gameover`; el modal está fuera del canvas.                                       |
+| Listeners de puntero que sobreviven al desmontaje                   | Registrados en `mount()` y quitados en `destroy()`; criterio de entrar y salir 5 veces.    |
+| La conversión de distancia falla con la CRT escalada                | Umbrales en px CSS, sin convertir a coordenadas del mundo.                                 |
+| Detección táctil errónea en portátiles con pantalla táctil          | Overlay según `useIsTouch()`; los gestos del canvas funcionan siempre.                     |
+| Popups encadenados tapan la rana en carreras rápidas                | Tope de 8 y vida de 0,7 s.                                                                 |
+| Fuente `monospace` del canvas distinta de la pixel de la plataforma | Riesgo aceptado: cargar la fuente pixel en canvas exige esperar a `document.fonts`.        |
+| Número de migración `0007` ocupado al implementar                   | Renumerar al siguiente libre; el contenido no cambia.                                      |
 
 ## Lo que **no** entra en esta spec
 

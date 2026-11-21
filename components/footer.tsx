@@ -3,7 +3,7 @@ export function Footer() {
     <footer
       style={{
         borderTop: "1px solid var(--line)",
-        padding: "20px 32px",
+        padding: "20px 32px calc(20px + env(safe-area-inset-bottom))",
         textAlign: "center",
         color: "var(--ink-faint)",
         fontFamily: "var(--mono)",
