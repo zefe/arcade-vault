@@ -11,6 +11,7 @@ import {
   LANE_OFFSET_STEP,
   MAX_CX,
   MAX_DPR,
+  MAX_DT,
   MIN_CX,
   PAD_COLS,
   PAD_POINTS,
@@ -73,6 +74,8 @@ export class RanariaEngine {
   private lives = START_LIVES;
   private level = 1;
 
+  private rafId = 0;
+  private lastTime: number | null = null;
   private lastSnapshot: RanariaSnapshot | null = null;
 
   constructor(
@@ -89,6 +92,14 @@ export class RanariaEngine {
     canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
     this.initGame("ready");
+  }
+
+  // Registra listeners, arranca el loop y queda en "ready".
+  mount() {
+    window.addEventListener("blur", this.handleBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
   }
 
   start() {
@@ -121,6 +132,34 @@ export class RanariaEngine {
     this.initGame("playing");
     this.emit();
   }
+
+  destroy() {
+    cancelAnimationFrame(this.rafId);
+    window.removeEventListener("blur", this.handleBlur);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
+  }
+
+  private handleBlur = () => this.pause();
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pause();
+  };
+
+  // En pausa se dibuja sin actualizar: carriles, rana y tiempo quedan congelados.
+  private loop = (ts: number) => {
+    const dt =
+      this.lastTime === null
+        ? 0
+        : Math.min((ts - this.lastTime) / 1000, MAX_DT);
+    this.lastTime = ts;
+    if (!this.paused) this.update(dt);
+    this.draw();
+    this.emit();
+    this.rafId = requestAnimationFrame(this.loop);
+  };
 
   // Solo se emite si cambia el snapshot: evita un render de React por frame.
   private emit() {
