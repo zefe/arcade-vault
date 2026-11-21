@@ -8,6 +8,7 @@ import {
   RanariaEngine,
   type RanariaSnapshot,
 } from "@/lib/games/ranaria/engine";
+import { useIsTouch } from "@/lib/use-is-touch";
 
 const INITIAL_SNAPSHOT: RanariaSnapshot = {
   phase: "ready",
@@ -17,7 +18,15 @@ const INITIAL_SNAPSHOT: RanariaSnapshot = {
   level: 1,
 };
 
+const CONTROLS = [
+  { keys: ["↑", "↓", "←", "→"], action: "Saltar" },
+  { keys: ["W", "A", "S", "D"], action: "Saltar" },
+  { keys: ["P", "Esc"], action: "Pausar" },
+];
+
 export function RanariaPlayer({ game }: { game: Game }) {
+  // useSyncExternalStore: false en el servidor, valor real tras hidratar, sin mismatch.
+  const isTouch = useIsTouch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<RanariaEngine | null>(null);
   const [snapshot, setSnapshot] = useState<RanariaSnapshot>(INITIAL_SNAPSHOT);
@@ -57,6 +66,26 @@ export function RanariaPlayer({ game }: { game: Game }) {
       onRestart={restart}
     >
       <canvas ref={canvasRef} aria-label={`Partida de ${game.title}`} />
+      {snapshot.phase === "ready" && (
+        <div className="crt-content ranaria-ready">
+          <div>
+            <dl className="ranaria-controls">
+              {CONTROLS.map(({ keys, action }) => (
+                <div key={keys.join("")}>
+                  <dt>
+                    {keys.map((key) => (
+                      <kbd key={key}>{key}</kbd>
+                    ))}
+                  </dt>
+                  <dd>{action}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="pixel ranaria-start">PULSA ESPACIO</div>
+            {isTouch && <p className="pixel ranaria-touch">REQUIERE TECLADO</p>}
+          </div>
+        </div>
+      )}
     </PlayerShell>
   );
 }
