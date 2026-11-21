@@ -1,6 +1,6 @@
 # SPEC JAM ranaria 01 — Juego RANARIA real en el reproductor
 
-> **Estado:** Borrador
+> **Estado:** Aprobado
 > **Depende de:** SPEC 04, SPEC 05, SPEC 06, SPEC 07
 > **Fecha:** 2026-11-18
 > **Objetivo:** Crear un juego de cruce por rejilla como motor TypeScript en canvas para que `/juegos/ranaria/jugar` sea un juego real con ranking, sobre `PlayerShell`.
