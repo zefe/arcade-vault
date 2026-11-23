@@ -119,12 +119,12 @@ body:has(.av-player) .av-bg::after {
 
 ## Mediciones
 
-| Momento    | Dispositivo | Skin | FPS medio | ms medio | p95 ms |
-| ---------- | ----------- | ---- | --------- | -------- | ------ |
-| Línea base | Escritorio  | neon |           |          |        |
-| Línea base | Móvil       | neon |           |          |        |
-| Final      | Escritorio  | neon |           |          |        |
-| Final      | Móvil       | neon |           |          |        |
+| Momento    | Dispositivo | Skin | FPS medio | ms medio  | p95 ms    |
+| ---------- | ----------- | ---- | --------- | --------- | --------- |
+| Línea base | Escritorio  | neon | no medido | no medido | no medido |
+| Línea base | Móvil       | neon | no medido | no medido | no medido |
+| Final      | Escritorio  | neon |           |           |           |
+| Final      | Móvil       | neon |           |           |           |
 
 ## Decisiones
 

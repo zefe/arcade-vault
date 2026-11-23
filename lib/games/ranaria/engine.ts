@@ -98,6 +98,10 @@ export class RanariaEngine {
   private lastTime: number | null = null;
   private lastSnapshot: RanariaSnapshot | null = null;
   private perf: PerfMeter | null; // medidor dev con ?perf=1 (SPEC JAM ranaria 04)
+  // Caché del fondo estático (bg + fondo + bahías) a resolución dpr; se copia con un drawImage.
+  private bgCache: HTMLCanvasElement;
+  private bgCtx: CanvasRenderingContext2D;
+  private bgDirty = true;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -113,6 +117,12 @@ export class RanariaEngine {
     this.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     canvas.width = WORLD_WIDTH * this.dpr;
     canvas.height = WORLD_HEIGHT * this.dpr;
+    this.bgCache = document.createElement("canvas");
+    this.bgCache.width = canvas.width;
+    this.bgCache.height = canvas.height;
+    const bgCtx = this.bgCache.getContext("2d");
+    if (!bgCtx) throw new Error("RanariaEngine: canvas 2D no disponible");
+    this.bgCtx = bgCtx;
     this.onChange = onChange;
     this.palette = palette;
     this.perf = options?.perf ? new PerfMeter() : null;
@@ -163,6 +173,7 @@ export class RanariaEngine {
   // también en pausa y game over, así que basta con repintar ya este frame.
   setSkin(palette: RanariaPalette) {
     this.palette = palette;
+    this.bgDirty = true;
     this.draw();
   }
 
@@ -174,6 +185,7 @@ export class RanariaEngine {
       "visibilitychange",
       this.handleVisibilityChange,
     );
+    this.bgCache.width = 0; // libera la caché del fondo
   }
 
   // En "gameover" no se toca el teclado: el modal necesita espacios y WASD.
@@ -258,6 +270,7 @@ export class RanariaEngine {
       offset: def.row * LANE_OFFSET_STEP,
     }));
     this.occupied = PAD_COLS.map(() => false);
+    this.bgDirty = true;
     this.score = 0;
     this.lives = START_LIVES;
     this.level = 1;
@@ -431,6 +444,7 @@ export class RanariaEngine {
       return;
     }
     this.occupied[pad] = true;
+    this.bgDirty = true;
     this.score += PAD_POINTS + TIME_POINTS * Math.floor(this.time);
 
     if (this.occupied.every(Boolean)) {
@@ -475,16 +489,29 @@ export class RanariaEngine {
     this.lives = Math.max(0, this.lives - 1);
   }
 
-  // Solo el mundo: score, vidas, nivel, pausa y game over los pinta React.
-  private draw() {
-    const ctx = this.ctx;
+  // Pinta bg + fondo + bahías en la caché. Solo tras setSkin, cambio de occupied o initGame.
+  private renderBackground() {
+    const ctx = this.bgCtx;
     const p = this.palette;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = p.bg;
     ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     drawBackground(ctx, p);
-    for (const lane of this.lanes) drawLane(ctx, p, lane);
     drawBays(ctx, p, this.occupied);
+    this.bgDirty = false;
+  }
+
+  // Solo el mundo: score, vidas, nivel, pausa y game over los pinta React.
+  // Orden: caché (fondo + bahías) → carriles → rana → tiempo. Ningún carril usa la fila 0.
+  private draw() {
+    const ctx = this.ctx;
+    const p = this.palette;
+    if (this.bgDirty) this.renderBackground();
+    // La caché ya está a resolución dpr: copia píxel a píxel con transform identidad.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.bgCache, 0, 0);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    for (const lane of this.lanes) drawLane(ctx, p, lane);
 
     const frog = this.frog;
     if (frog.state === "dying") {
