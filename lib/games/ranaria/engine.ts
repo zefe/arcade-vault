@@ -42,6 +42,7 @@ import {
   drawTimeBar,
   moverX,
 } from "./entities";
+import { PerfMeter } from "@/lib/perf-meter";
 import type { RanariaPalette } from "./skins";
 
 export type RanariaPhase = "ready" | "playing" | "gameover";
@@ -96,11 +97,13 @@ export class RanariaEngine {
   private rafId = 0;
   private lastTime: number | null = null;
   private lastSnapshot: RanariaSnapshot | null = null;
+  private perf: PerfMeter | null; // medidor dev con ?perf=1 (SPEC JAM ranaria 04)
 
   constructor(
     canvas: HTMLCanvasElement,
     onChange: (s: RanariaSnapshot) => void,
     palette: RanariaPalette, // SKINS[skin] de lib/games/ranaria/skins.ts
+    options?: { perf?: boolean },
   ) {
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
@@ -112,6 +115,7 @@ export class RanariaEngine {
     canvas.height = WORLD_HEIGHT * this.dpr;
     this.onChange = onChange;
     this.palette = palette;
+    this.perf = options?.perf ? new PerfMeter() : null;
     this.initGame("ready");
   }
 
@@ -209,8 +213,10 @@ export class RanariaEngine {
         ? 0
         : Math.min((ts - this.lastTime) / 1000, MAX_DT);
     this.lastTime = ts;
+    this.perf?.begin();
     if (!this.paused) this.update(dt);
     this.draw();
+    this.perf?.end();
     this.emit();
     this.rafId = requestAnimationFrame(this.loop);
   };
@@ -494,5 +500,6 @@ export class RanariaEngine {
     }
 
     drawTimeBar(ctx, p, this.time);
+    this.perf?.draw(ctx);
   }
 }
