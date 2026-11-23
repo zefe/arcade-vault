@@ -1,6 +1,6 @@
 # SPEC JAM ranaria 04 — Rendimiento de RANARIA en móvil
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 09, `game-jam/ranaria/01-juego-ranaria`
 > **Fecha:** 2026-11-23
 > **Objetivo:** Quitar los tirones de RANARIA en móvil cacheando su fondo estático en un canvas aparte y aligerando el fondo CSS del reproductor, medido con un medidor de FPS solo de desarrollo.
@@ -123,8 +123,8 @@ body:has(.av-player) .av-bg::after {
 | ---------- | ----------- | ---- | --------- | --------- | --------- |
 | Línea base | Escritorio  | neon | no medido | no medido | no medido |
 | Línea base | Móvil       | neon | no medido | no medido | no medido |
-| Final      | Escritorio  | neon |           |           |           |
-| Final      | Móvil       | neon |           |           |           |
+| Final      | Escritorio  | neon | no medido | no medido | no medido |
+| Final      | Móvil       | neon | no medido | no medido | no medido |
 
 ## Decisiones
 
