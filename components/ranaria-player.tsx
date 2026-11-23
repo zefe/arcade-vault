@@ -9,6 +9,7 @@ import {
   type RanariaSnapshot,
 } from "@/lib/games/ranaria/engine";
 import { SKINS } from "@/lib/games/ranaria/skins";
+import { isPerfEnabled } from "@/lib/perf-meter";
 import { useIsTouch } from "@/lib/use-is-touch";
 import { useSkin } from "@/lib/use-skin";
 
@@ -49,6 +50,7 @@ export function RanariaPlayer({ game }: { game: Game }) {
       canvasRef.current,
       setSnapshot,
       SKINS[skinRef.current],
+      { perf: isPerfEnabled() },
     );
     engineRef.current = engine;
     engine.mount();

@@ -23,7 +23,7 @@ Routes (`app/`): `/` (landing, `components/home.tsx`), `/acerca`, `/juegos` (lib
 - `/spec` and `/spec-impl` come from [Klerith/fernando-skills](https://github.com/Klerith/fernando-skills) (pinned in `skills-lock.json`; install: `npx skills@latest add Klerith/fernando-skills`).
 - Spec header: `> **Estado:**` (Borrador → Aprobado → Implementado), `Depende de`, `Fecha`, `Objetivo`. When done, set state to Implementado and update this file.
 
-Specs: 01 MVP pantallas · 02 landing y acerca · 03 integración Supabase · 04 juego ROCAS · 05 leaderboard y tabla games · 06 juego CAÍDA · 07 juego BLOQUE BUSTER · 08 juego SERPENTINA · 09 controles táctiles (all implemented). Game jam: `ranaria/01-juego-ranaria` (implementing; 02 niveles, 03 táctil y feedback in Borrador).
+Specs: 01 MVP pantallas · 02 landing y acerca · 03 integración Supabase · 04 juego ROCAS · 05 leaderboard y tabla games · 06 juego CAÍDA · 07 juego BLOQUE BUSTER · 08 juego SERPENTINA · 09 controles táctiles (all implemented). Game jam: `ranaria/01-juego-ranaria` (implemented; 02 niveles, 03 táctil y feedback in Borrador; 04 rendimiento implemented: bg cache + dev `PerfMeter` `lib/perf-meter.ts` with `?perf=1`, static `/jugar` CSS bg).
 
 ## Skills
 
