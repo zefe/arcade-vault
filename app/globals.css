@@ -137,6 +137,17 @@ a {
   opacity: 0.6;
 }
 
+/* Reproductor: fondo quieto y sin blend (rendimiento, SPEC JAM ranaria 04) */
+body:has(.av-player) .av-bg::before {
+  animation: none;
+}
+/* overlay de blanco sobre --bg (#0a0a0f, ~4 % luminancia) aclara α·Cb; normal aclara α·(1−Cb):
+   0.6 · 0.04 / 0.96 ≈ 0.03 da el mismo brillo sin mezclar en el compositor. */
+body:has(.av-player) .av-bg::after {
+  mix-blend-mode: normal;
+  opacity: 0.03;
+}
+
 .av-noise {
   position: fixed;
   inset: 0;
