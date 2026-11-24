@@ -1,6 +1,6 @@
 # SPEC 04 — Juego ROCAS real en el reproductor
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-11-04
 > **Objetivo:** Adaptar `references/started-games/02-asteroids/` como motor TypeScript en canvas para que `/juegos/rocas/jugar` sea un juego real, con el HUD, la pausa y el guardado de puntuación de la plataforma.
