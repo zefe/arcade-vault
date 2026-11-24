@@ -53,6 +53,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          name: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+        };
+        Relationships: [];
+      };
       scores: {
         Row: {
           created_at: string;
@@ -138,7 +156,7 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      is_name_available: { Args: { p_name: string }; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;
