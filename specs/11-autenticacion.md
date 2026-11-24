@@ -1,6 +1,6 @@
 # SPEC 11 — Registro, login y autenticación
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01, SPEC 03, SPEC 05
 > **Fecha:** 2026-11-23
 > **Objetivo:** Sustituir el login simulado por Supabase Auth con email y contraseña, Google y GitHub, y un alias único por jugador.
@@ -227,29 +227,39 @@ No hay variables de entorno nuevas.
 
 ## Criterios de aceptación
 
-- [ ] `npm run lint` y `npm run build` terminan sin errores.
-- [ ] Los advisors de seguridad no muestran tablas nuevas sin RLS ni funciones nuevas con `search_path` mutable.
-- [ ] Registrarse con datos válidos muestra `REVISA TU CORREO` y crea una fila en `auth.users` y otra en `profiles`.
+- [x] `npm run lint` y `npm run build` terminan sin errores.
+- [x] Los advisors de seguridad no muestran tablas nuevas sin RLS ni funciones nuevas con `search_path` mutable.
+- [x] Registrarse con datos válidos muestra `REVISA TU CORREO` y crea una fila en `auth.users` y otra en `profiles`.
 - [ ] Antes de confirmar, el login muestra `CONFIRMA TU CORREO PARA ENTRAR` y el botón de reenvío.
 - [ ] El botón de reenvío queda desactivado 60 s tras usarse.
-- [ ] El enlace abierto en el mismo navegador deja la sesión iniciada y lleva a `next`.
+- [x] El enlace abierto en el mismo navegador deja la sesión iniciada y lleva a `next`.
 - [ ] El enlace abierto en otro navegador lleva a `/auth` con aviso, y el login con contraseña funciona.
 - [ ] Una contraseña errónea y un correo inexistente muestran el mismo mensaje.
 - [ ] Registrar un correo ya existente con un alias libre muestra `REVISA TU CORREO`.
 - [ ] Un alias ocupado muestra `ALIAS NO DISPONIBLE` y no crea usuario.
-- [ ] `AB`, `ABCDEFGHIJK`, `A B C` y `AÑO` se rechazan como alias inválido.
+- [x] `AB`, `ABCDEFGHIJK`, `A B C` y `AÑO` se rechazan como alias inválido.
 - [ ] El primer acceso con Google y con GitHub lleva a `/auth/alias`; el segundo va directo a `next`.
 - [ ] Con sesión sin perfil, nav muestra `ELEGIR ALIAS` y los juegos funcionan como invitado.
 - [ ] Cancelar en Google o GitHub vuelve a `/auth` con un aviso.
-- [ ] `next=https://evil.test`, `next=//evil.test` y `next=/\evil.test` acaban en `/juegos`.
+- [x] `next=https://evil.test`, `next=//evil.test` y `next=/\evil.test` acaban en `/juegos`.
 - [ ] `/juegos/rocas` → Iniciar Sesión → login termina en `/juegos/rocas`.
 - [ ] La sesión sobrevive a recargar y cerrar el navegador, sin parpadeo de invitado ni error de hidratación.
 - [ ] `CERRAR SESIÓN` funciona en escritorio y móvil, y nav pasa a `Iniciar Sesión` sin recargar.
-- [ ] Un usuario no puede leer ni insertar el perfil de otro, ni actualizar el suyo, con la clave publicable.
+- [x] Un usuario no puede leer ni insertar el perfil de otro, ni actualizar el suyo, con la clave publicable.
 - [ ] Un invitado puede jugar y guardar puntuación igual que antes.
-- [ ] `grep -rn "av_user" app components lib` solo devuelve el borrado de la clave.
+- [x] `grep -rn "av_user" app components lib` solo devuelve el borrado de la clave.
 - [ ] Login y registro se usan con teclado y en 375×667 sin scroll horizontal.
-- [ ] No hay claves `service_role` ni secretos OAuth en el repo.
+- [x] No hay claves `service_role` ni secretos OAuth en el repo.
+
+### Verificación al cerrar (2026-11-23)
+
+Cerrada por decisión del usuario con criterios sin marcar. Marcado = comprobado con build, BD, log o prueba directa; `next` y alias inválidos se probaron en `safeNext` e `isValidAlias`, y los permisos de `profiles` en una transacción revertida.
+
+Sin marcar:
+
+- **No probado, falta un segundo correo del equipo:** login sin confirmar y enlace en otro navegador (el aviso sí, con un código falso).
+- **Parcial, según la BD:** Google y GitHub solo tienen el primer acceso, con alias guardado; falta el segundo. Alias ocupado: lo rechaza la BD, falta verlo en el formulario. Cancelar en el proveedor: solo simulado contra el callback.
+- **Sin evidencia independiente:** el usuario indicó que las pruebas pasaban, sin detalle por criterio. Incluye reenvío, mensajes de login, correo existente, vuelta a `/juegos/rocas`, `ELEGIR ALIAS` y juego sin perfil, persistencia e hidratación, menú y cierre de sesión en nav, invitado, teclado y 375×667.
 
 ## Decisiones tomadas y descartadas
 
