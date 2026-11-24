@@ -20,7 +20,7 @@ export async function createClient() {
             cookieStore.set(name, value, options);
           }
         } catch {
-          // Server Components can't set cookies; session refresh will live in proxy.ts (auth spec).
+          // Server Components can't set cookies; proxy.ts refreshes the session.
         }
       },
     },
