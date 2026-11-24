@@ -333,6 +333,40 @@ body:has(.av-player) .av-bg::after {
 }
 .av-nav .auth-btn {
   margin-left: 16px;
+  white-space: nowrap;
+}
+.av-nav .user-menu {
+  position: relative;
+}
+.user-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+.user-menu-item {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.user-menu-item:hover {
+  color: var(--cyan);
+}
+.user-menu-item:focus-visible,
+.mobile-signout:focus-visible,
+.av-nav .auth-btn:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -5px;
 }
 .av-nav .hamburger {
   display: none;
@@ -351,6 +385,13 @@ body:has(.av-player) .av-bg::after {
   }
   .av-nav .hamburger {
     display: inline-flex;
+  }
+}
+/* No room next to the logo: the mobile panel has the same options. */
+@media (max-width: 640px) {
+  .av-nav .auth-btn,
+  .av-nav .user-menu {
+    display: none;
   }
 }
 
@@ -377,6 +418,22 @@ body:has(.av-player) .av-bg::after {
   font-size: 11px;
   color: var(--ink-dim);
   border-bottom: 1px dashed var(--line-2);
+}
+.mobile-user,
+.mobile-signout {
+  padding: 14px 12px;
+  font-family: var(--pixel);
+  font-size: 11px;
+}
+.mobile-signout {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 1px dashed var(--line-2);
+  background: transparent;
+  color: var(--ink-dim);
+  text-align: left;
+  cursor: pointer;
 }
 .av-mobile-panel a.active {
   color: var(--cyan);
@@ -2233,6 +2290,12 @@ body:has(.av-player) .av-bg::after {
   font-size: 16px;
   letter-spacing: 0.1em;
 }
+.auth-header .sub {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+}
 .auth-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2308,6 +2371,88 @@ body:has(.av-player) .av-bg::after {
 .social .btn {
   padding: 12px;
   font-size: 9px;
+}
+
+.auth-wide {
+  width: 100%;
+}
+.auth-card .btn.lg {
+  margin-top: 8px;
+}
+.auth-card .auth-guest {
+  margin-top: 10px;
+}
+/* 16px: below that, iOS zooms in when focusing the field. */
+.auth-card .field input {
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+}
+.auth-card .field input.alias {
+  text-transform: uppercase;
+}
+.auth-card .field input::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+.auth-card .field input[aria-invalid="true"] {
+  border-color: var(--magenta);
+}
+.auth-card .field label,
+.auth-card .field .hint,
+.auth-card .auth-divider,
+.auth-terms {
+  color: var(--ink-dim);
+}
+.field .hint {
+  font-size: 11px;
+}
+.auth-msg {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--cyan);
+  background: rgba(0, 245, 255, 0.08);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.auth-msg.error {
+  border-left-color: var(--magenta);
+  background: rgba(255, 0, 110, 0.12);
+}
+.social + .auth-msg,
+.auth-unconfirmed {
+  margin-top: 12px;
+}
+.auth-terms {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.auth-intro {
+  margin: 0 0 16px;
+  color: var(--ink-dim);
+}
+.auth-check h3 {
+  margin: 20px 0 16px;
+  font-family: var(--pixel);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  outline: 0;
+}
+.auth-check p {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+.auth-check > .btn {
+  margin-top: 10px;
+}
+/* Inset: .btn has clip-path, which would cut an outer outline. */
+.auth-card .btn:focus-visible,
+.auth-tabs button:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -5px;
 }
 
 /* ===== salón ===== */

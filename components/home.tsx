@@ -268,7 +268,7 @@ export function Home({ games, recentScores, topPlayers }: HomeProps) {
             <Link href="/juegos" className="btn xl pulse">
               ▶ EXPLORAR JUEGOS
             </Link>
-            <Link href="/auth" className="btn xl magenta">
+            <Link href="/auth?modo=registro" className="btn xl magenta">
               ✦ CREAR CUENTA
             </Link>
           </div>
@@ -455,7 +455,7 @@ export function Home({ games, recentScores, topPlayers }: HomeProps) {
               <li>✔ Funciona en cualquier navegador</li>
             </ul>
             <Link
-              href="/auth"
+              href="/auth?modo=registro"
               className="btn xl pulse"
               style={{ width: "100%" }}
             >

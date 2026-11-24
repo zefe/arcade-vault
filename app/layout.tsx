@@ -6,6 +6,7 @@ import {
 } from "next/font/google";
 import { Footer } from "@/components/footer";
 import { Nav } from "@/components/nav";
+import { getSession } from "@/lib/auth/player";
 import { UserProvider } from "@/lib/user-context";
 import "./globals.css";
 
@@ -41,7 +42,9 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0f", // --bg
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await getSession();
+
   return (
     <html
       lang="es"
@@ -51,7 +54,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="av-bg" />
         <div className="av-noise" />
         <div id="root">
-          <UserProvider>
+          <UserProvider
+            name={session.status === "player" ? session.name : null}
+            needsAlias={session.status === "needs-alias"}
+          >
             <Nav />
             <main className="av-main">{children}</main>
             <Footer />

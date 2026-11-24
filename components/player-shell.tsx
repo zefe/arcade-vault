@@ -49,7 +49,7 @@ export function PlayerShell({
   touchControls,
 }: PlayerShellProps) {
   const { user } = useUser();
-  // null = not edited yet; falls back to the logged-in user (hydrated after mount) or INVITADO.
+  // null = not edited yet; falls back to the logged-in user or INVITADO.
   const [nameInput, setNameInput] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const name = nameInput ?? user?.name ?? "INVITADO";

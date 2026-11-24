@@ -1,6 +1,6 @@
 # SPEC 02 — Landing de inicio y enlace Acerca de
 
-> **Estado:** aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-08
 > **Objetivo:** Portar la landing de `references/templates/home-about/home.jsx` a `/`, mover la biblioteca a `/juegos` y añadir el link "Acerca de" con una página placeholder.

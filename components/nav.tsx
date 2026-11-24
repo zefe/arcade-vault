@@ -1,28 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { SignOutForm, UserMenu } from "@/components/user-menu";
+import { safeNext } from "@/lib/auth/validation";
 import { useUser } from "@/lib/user-context";
 
 type Section = "inicio" | "biblioteca" | "salon" | "acerca" | "auth" | null;
 
 function sectionFor(pathname: string): Section {
   if (pathname === "/") return "inicio";
-  if (pathname === "/juegos" || pathname.startsWith("/juegos/")) return "biblioteca";
+  if (pathname === "/juegos" || pathname.startsWith("/juegos/"))
+    return "biblioteca";
   if (pathname === "/salon") return "salon";
   if (pathname === "/acerca") return "acerca";
-  if (pathname === "/auth") return "auth";
+  if (pathname === "/auth" || pathname.startsWith("/auth/")) return "auth";
   return null;
 }
 
 export function Nav() {
   const pathname = usePathname();
-  const { user, logout } = useUser();
+  const searchParams = useSearchParams();
+  const { user, needsAlias } = useUser();
   const [open, setOpen] = useState(false);
   const section = sectionFor(pathname);
   const cls = (s: Section) => (section === s ? "active" : "");
   const close = () => setOpen(false);
+
+  // On /auth the destination is the one it already had, not /auth itself.
+  const next =
+    section === "auth" ? safeNext(searchParams.get("next")) : pathname;
+  const access = {
+    href: `${needsAlias ? "/auth/alias" : "/auth"}?${new URLSearchParams({ next })}`,
+    label: needsAlias ? "ELEGIR ALIAS" : "Iniciar Sesión",
+  };
 
   return (
     <>
@@ -34,10 +46,18 @@ export function Nav() {
           </div>
         </Link>
         <div className="links">
-          <Link href="/" className={cls("inicio")}>Inicio</Link>
-          <Link href="/juegos" className={cls("biblioteca")}>Biblioteca</Link>
-          <Link href="/salon" className={cls("salon")}>Salón de la Fama</Link>
-          <Link href="/acerca" className={cls("acerca")}>Acerca de</Link>
+          <Link href="/" className={cls("inicio")}>
+            Inicio
+          </Link>
+          <Link href="/juegos" className={cls("biblioteca")}>
+            Biblioteca
+          </Link>
+          <Link href="/salon" className={cls("salon")}>
+            Salón de la Fama
+          </Link>
+          <Link href="/acerca" className={cls("acerca")}>
+            Acerca de
+          </Link>
         </div>
         <div className="spacer"></div>
         <div className="coin-counter">
@@ -45,12 +65,10 @@ export function Nav() {
           <span>CRÉDITOS · 03</span>
         </div>
         {user ? (
-          <button className="btn ghost auth-btn" onClick={logout}>
-            {user.name} ▾
-          </button>
+          <UserMenu key={pathname} name={user.name} />
         ) : (
-          <Link href="/auth" className="btn auth-btn">
-            Iniciar Sesión
+          <Link href={access.href} className="btn auth-btn">
+            {access.label}
           </Link>
         )}
         <button
@@ -63,18 +81,51 @@ export function Nav() {
         </button>
       </nav>
 
-      <div className={"av-mobile-backdrop" + (open ? " open" : "")} onClick={close}></div>
-      <aside className={"av-mobile-panel" + (open ? " open" : "")} inert={!open}>
-        <div className="pixel neon-cyan" style={{ fontSize: 11, marginBottom: 16 }}>MENÚ</div>
-        <Link href="/" className={cls("inicio")} onClick={close}>Inicio</Link>
-        <Link href="/juegos" className={cls("biblioteca")} onClick={close}>Biblioteca</Link>
-        <Link href="/salon" className={cls("salon")} onClick={close}>Salón de la Fama</Link>
-        <Link href="/acerca" className={cls("acerca")} onClick={close}>Acerca de</Link>
-        <Link href="/auth" className={cls("auth")} onClick={close}>
-          {user ? "Cuenta" : "Iniciar Sesión"}
+      <div
+        className={"av-mobile-backdrop" + (open ? " open" : "")}
+        onClick={close}
+      ></div>
+      <aside
+        className={"av-mobile-panel" + (open ? " open" : "")}
+        inert={!open}
+      >
+        <div
+          className="pixel neon-cyan"
+          style={{ fontSize: 11, marginBottom: 16 }}
+        >
+          MENÚ
+        </div>
+        <Link href="/" className={cls("inicio")} onClick={close}>
+          Inicio
         </Link>
+        <Link href="/juegos" className={cls("biblioteca")} onClick={close}>
+          Biblioteca
+        </Link>
+        <Link href="/salon" className={cls("salon")} onClick={close}>
+          Salón de la Fama
+        </Link>
+        <Link href="/acerca" className={cls("acerca")} onClick={close}>
+          Acerca de
+        </Link>
+        {user ? (
+          <>
+            <div className="mobile-user neon-cyan">{user.name}</div>
+            <SignOutForm className="mobile-signout" onSubmit={close} />
+          </>
+        ) : (
+          <Link href={access.href} className={cls("auth")} onClick={close}>
+            {access.label}
+          </Link>
+        )}
         <div style={{ flex: 1 }}></div>
-        <div className="pixel" style={{ fontSize: 9, color: "var(--ink-faint)", letterSpacing: "0.16em" }}>
+        <div
+          className="pixel"
+          style={{
+            fontSize: 9,
+            color: "var(--ink-faint)",
+            letterSpacing: "0.16em",
+          }}
+        >
           CRÉDITOS · 03
         </div>
       </aside>
