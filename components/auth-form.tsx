@@ -8,15 +8,22 @@ import {
   signIn,
   signInWithOAuth,
   signUp,
-  type AuthField,
   type AuthState,
 } from "@/app/auth/actions";
+import {
+  AliasField,
+  CONNECTING,
+  Field,
+  FormErrorLine,
+  IDLE,
+  useFormError,
+  validateAlias,
+  type FormError,
+} from "@/components/auth-fields";
 import {
   AUTH_TEXT,
   PASSWORD_MIN,
   RESEND_WAIT_S,
-  isReservedAlias,
-  isValidAlias,
   isValidEmail,
   normalizeAlias,
 } from "@/lib/auth/validation";
@@ -24,66 +31,6 @@ import {
 export type AuthNotice = { tone: "info" | "error"; text: string };
 
 type Tab = "in" | "up";
-type FormError = { message: string; field?: AuthField };
-
-const IDLE: AuthState = { status: "idle" };
-const CONNECTING = "CONECTANDO…";
-const ERROR_ID = "auth-error";
-
-// Client errors (before submitting) win over the last server answer.
-function useFormError(state: AuthState) {
-  const [local, setLocal] = useState<FormError | null>(null);
-  const error = local ?? (state.status === "error" ? state : null);
-
-  useEffect(() => {
-    if (error?.field) document.getElementById(`auth-${error.field}`)?.focus();
-  }, [error]);
-
-  return { error, setLocal };
-}
-
-function FormErrorLine({ error }: { error: FormError | null }) {
-  if (!error) return null;
-  return (
-    <p className="auth-msg error" id={ERROR_ID} role="alert">
-      {error.message}
-    </p>
-  );
-}
-
-type FieldProps = {
-  field: AuthField;
-  label: string;
-  error: FormError | null;
-  hint?: string;
-} & Omit<React.ComponentProps<"input">, "id" | "name">;
-
-function Field({ field, label, error, hint, ...input }: FieldProps) {
-  const id = `auth-${field}`;
-  const invalid = error?.field === field;
-  const describedBy = [hint && `${id}-hint`, invalid && ERROR_ID]
-    .filter(Boolean)
-    .join(" ");
-
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        name={field}
-        required
-        aria-invalid={invalid}
-        aria-describedby={describedBy || undefined}
-        {...input}
-      />
-      {hint && (
-        <span className="hint" id={`${id}-hint`}>
-          {hint}
-        </span>
-      )}
-    </div>
-  );
-}
 
 function ResendForm({
   email,
@@ -211,12 +158,8 @@ function validateSignUp(
   email: string,
   password: string,
 ): FormError | null {
-  if (!isValidAlias(alias)) {
-    return { message: AUTH_TEXT.aliasInvalid, field: "alias" };
-  }
-  if (isReservedAlias(alias)) {
-    return { message: AUTH_TEXT.aliasTaken, field: "alias" };
-  }
+  const invalidAlias = validateAlias(alias);
+  if (invalidAlias) return invalidAlias;
   if (!isValidEmail(email)) return { message: AUTH_TEXT.email, field: "email" };
   if (password.length < PASSWORD_MIN) {
     return { message: AUTH_TEXT.password, field: "password" };
@@ -263,20 +206,7 @@ function SignUpForm({
   return (
     <form action={action} onSubmit={validate} noValidate>
       <input type="hidden" name="next" value={next} />
-      <Field
-        field="alias"
-        label="Alias"
-        hint="3–10 caracteres: A-Z, 0-9 y _. Es único."
-        error={error}
-        type="text"
-        className="alias"
-        autoComplete="nickname"
-        autoCapitalize="characters"
-        spellCheck={false}
-        value={alias}
-        onChange={(e) => setAlias(e.target.value)}
-        placeholder="PX_KAI"
-      />
+      <AliasField value={alias} onChange={setAlias} error={error} />
       <Field
         field="email"
         label="Correo electrónico"

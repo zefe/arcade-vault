@@ -2372,6 +2372,10 @@ body:has(.av-player) .av-bg::after {
   font-size: 11px;
   letter-spacing: 0.1em;
 }
+.auth-intro {
+  margin: 0 0 16px;
+  color: var(--ink-dim);
+}
 .auth-check h3 {
   margin: 20px 0 16px;
   font-family: var(--pixel);
