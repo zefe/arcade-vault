@@ -2233,6 +2233,12 @@ body:has(.av-player) .av-bg::after {
   font-size: 16px;
   letter-spacing: 0.1em;
 }
+.auth-header .sub {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+}
 .auth-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2308,6 +2314,84 @@ body:has(.av-player) .av-bg::after {
 .social .btn {
   padding: 12px;
   font-size: 9px;
+}
+
+.auth-wide {
+  width: 100%;
+}
+.auth-card .btn.lg {
+  margin-top: 8px;
+}
+.auth-card .auth-guest {
+  margin-top: 10px;
+}
+/* 16px: below that, iOS zooms in when focusing the field. */
+.auth-card .field input {
+  width: 100%;
+  min-width: 0;
+  font-size: 16px;
+}
+.auth-card .field input.alias {
+  text-transform: uppercase;
+}
+.auth-card .field input::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+.auth-card .field input[aria-invalid="true"] {
+  border-color: var(--magenta);
+}
+.auth-card .field label,
+.auth-card .field .hint,
+.auth-card .auth-divider,
+.auth-terms {
+  color: var(--ink-dim);
+}
+.field .hint {
+  font-size: 11px;
+}
+.auth-msg {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--cyan);
+  background: rgba(0, 245, 255, 0.08);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.auth-msg.error {
+  border-left-color: var(--magenta);
+  background: rgba(255, 0, 110, 0.12);
+}
+.social + .auth-msg,
+.auth-unconfirmed {
+  margin-top: 12px;
+}
+.auth-terms {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.auth-check h3 {
+  margin: 20px 0 16px;
+  font-family: var(--pixel);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  outline: 0;
+}
+.auth-check p {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+.auth-check > .btn {
+  margin-top: 10px;
+}
+/* Inset: .btn has clip-path, which would cut an outer outline. */
+.auth-card .btn:focus-visible,
+.auth-tabs button:focus-visible {
+  outline: 2px solid var(--yellow);
+  outline-offset: -5px;
 }
 
 /* ===== salón ===== */
